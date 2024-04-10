@@ -1,12 +1,18 @@
 // src/index.js
 import express, { Express, Request, Response } from "express";
-import dotenv from "dotenv";
+import dotenv from "dotenv"
 import { log } from "console";
-type Thing = {
+
+type User = {
 	id: number;
 	name: string;
-	dimensions: 1 | 2 | 3;
+	email: string;
 };
+
+type DataBase = {
+	users: User[];
+}
+
 dotenv.config();
 
 function fullDateTime() {
@@ -19,28 +25,26 @@ function fullDateTime() {
   return (`${date} ${time}.${milliseconds}`); 
 }
 
-
 const app: Express = express();
 app.use(express.json());
 app.use((req: Request, res: Response, next: Function) => {
 	const token = req.header("Authorization");
 	log("intercepted!");
 	req.body.date = fullDateTime()
-
 	log(token);
 	next();
 });
 
 const port = process.env.PORT || 3000;
-const db: { things: Thing[] } = {
-	things: [],
+const db: DataBase = {
+	users: [],
 };
 app.post("/add", (req: Request, res: Response) => {
 	log("body", req.body);
 	log("query", req.query);
-	const r: Thing = req.body as Thing;
-	db.things.push(r);
-	res.send(db.things);
+	const u: User = req.body as User;
+	db.users.push(u);
+	res.send(`User ${u.name} added!`);
 });
 
 app.listen(port, () => {
