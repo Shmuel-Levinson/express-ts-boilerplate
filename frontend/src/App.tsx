@@ -4,8 +4,8 @@ import axios from "axios"
 const initialFilterState = {
     startDateFilter: "",
     endDateFilter: "",
-    minSumFilter: "",
-    maxSumFilter: "",
+    minAmountFilter: "",
+    maxAmountFilter: "",
     typeFilter: "all",
     categoryFilter: "all",
 }
@@ -71,8 +71,8 @@ function AppDashboard() {
     const [filteredTransactions, setFilteredTransactions] = useState(transactions)
     const [startDate, setStartDate] = useState("")
     const [endDate, setEndDate] = useState("")
-    const [minSumFilter, setMinSumFilter] = useState("")
-    const [maxSumFilter, setMaxSumFilter] = useState("")
+    const [minAmountFilter, setminAmountFilter] = useState("")
+    const [maxAmountFilter, setmaxAmountFilter] = useState("")
     const [typeFilter, setTypeFilter] = useState("all")
     const [categoryFilter, setCategoryFilter] = useState("all")
     const [filterSummary, setFilterSummary] = useState("")
@@ -82,8 +82,8 @@ function AppDashboard() {
 
     useEffect(() => {
         applyFilters()
-        console.log("applying filters...",{startDate, endDate, minSumFilter, maxSumFilter, typeFilter, categoryFilter})
-    }, [startDate, endDate, minSumFilter, maxSumFilter, typeFilter, categoryFilter])
+        console.log("applying filters...",{startDate, endDate, minAmountFilter, maxAmountFilter, typeFilter, categoryFilter})
+    }, [startDate, endDate, minAmountFilter, maxAmountFilter, typeFilter, categoryFilter])
 
     useEffect(() => {
         drawPieChart()
@@ -94,14 +94,14 @@ function AppDashboard() {
             const transactionDate = new Date(transaction.date)
             const startDateObject = startDate ? new Date(startDate) : new Date(0)
             const endDateObject = endDate ? new Date(endDate) : new Date()
-            console.log({minSumFilter,maxSumFilter})
-            const properMinSumFilter = (minSumFilter === undefined || minSumFilter) === null ? "" : minSumFilter
-            const properMaxSumFilter = (maxSumFilter === undefined || maxSumFilter === null )? "" : maxSumFilter
+            console.log({minAmountFilter,maxAmountFilter})
+            const properminAmountFilter = (minAmountFilter === undefined || minAmountFilter) === null ? "" : minAmountFilter
+            const propermaxAmountFilter = (maxAmountFilter === undefined || maxAmountFilter === null )? "" : maxAmountFilter
             return (
                 transactionDate >= startDateObject &&
                 transactionDate <= endDateObject &&
-                (properMinSumFilter === "" || Math.abs(transaction.amount) >= Number.parseFloat(properMinSumFilter)) &&
-                (properMaxSumFilter === "" || Math.abs(transaction.amount) <= Number.parseFloat(properMaxSumFilter)) &&
+                (properminAmountFilter === "" || Math.abs(transaction.amount) >= Number.parseFloat(properminAmountFilter)) &&
+                (propermaxAmountFilter === "" || Math.abs(transaction.amount) <= Number.parseFloat(propermaxAmountFilter)) &&
                 (typeFilter === "all" || transaction.type === typeFilter) &&
                 (categoryFilter === "all" || transaction.category === categoryFilter)
             )
@@ -118,8 +118,8 @@ function AppDashboard() {
     const setFilters = (filters) => {
         setStartDate(filters.startDateFilter)
         setEndDate(filters.endDateFilter)
-        setMinSumFilter(filters.minSumFilter)
-        setMaxSumFilter(filters.maxSumFilter)
+        setminAmountFilter(filters.minAmountFilter)
+        setmaxAmountFilter(filters.maxAmountFilter)
         setTypeFilter(filters.typeFilter)
         setCategoryFilter(filters.categoryFilter)
 
@@ -190,8 +190,8 @@ function AppDashboard() {
                     currentFilter: {
                         startDateFilter: startDate,
                         endDateFilter: endDate,
-                        minSumFilter: minSumFilter,
-                        maxSumFilter: maxSumFilter,
+                        minAmountFilter: minAmountFilter,
+                        maxAmountFilter: maxAmountFilter,
                         typeFilter: typeFilter,
                         categoryFilter: categoryFilter,
                     },
@@ -313,16 +313,16 @@ function AppDashboard() {
                         />
                         <input
                             type="number"
-                            placeholder="Minimum Sum"
-                            value={minSumFilter}
-                            onChange={(e) => setMinSumFilter(e.target.value)}
+                            placeholder="Minimum Amount"
+                            value={minAmountFilter}
+                            onChange={(e) => setminAmountFilter(e.target.value)}
                             style={{padding: "5px", borderRadius: "3px", border: "1px solid #ccc"}}
                         />
                         <input
                             type="number"
-                            placeholder="Maximum Sum"
-                            value={maxSumFilter}
-                            onChange={(e) => setMaxSumFilter(e.target.value)}
+                            placeholder="Maximum Amount"
+                            value={maxAmountFilter}
+                            onChange={(e) => setmaxAmountFilter(e.target.value)}
                             style={{padding: "5px", borderRadius: "3px", border: "1px solid #ccc"}}
                         />
                         <select
