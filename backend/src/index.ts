@@ -9,6 +9,7 @@ import {log} from "console";
 import {getCompletion} from "./open-ai/open-ai-api";
 import {FILTER_INTERPRETER_DEFINITION_PROMPT} from "./ai/prompts";
 import {extractJsonFromString} from "./utils/object-utils";
+import {filterAgent} from "./ai/agents/filter-agent";
 
 
 dotenv.config();
@@ -62,25 +63,7 @@ app.post('gpt', async (req: Request, res: Response, next: NextFunction) => {
 
 app.post('/update-filter', async (req: Request, res: Response) => {
     const body = req.body;
-    const currentFilter = body.currentFilter;
-    const prompt = body.prompt;
-    const history = body.history || [];
-
-    const fullHistory = [
-        systemMessage(FILTER_INTERPRETER_DEFINITION_PROMPT),
-        ...history,
-        userMessage("Current filter settings: \n" + JSON.stringify(currentFilter))]
-
-    const answer = await getGroqResponse(prompt, fullHistory);
-    let response = {}
-    if (answer?.response) {
-        try {
-            response = extractJsonFromString(answer.response.replace('\n', '').trim());
-        } catch (e) {
-            console.error(e);
-            response = answer.response
-        }
-    }
+    const response = await filterAgent.getResponse(body);
     log({response})
     res.send(response);
 })
