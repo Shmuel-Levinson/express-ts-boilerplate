@@ -64,7 +64,7 @@ app.post('gpt', async (req: Request, res: Response, next: NextFunction) => {
 app.post('/update-filter', async (req: Request, res: Response) => {
     const body = req.body;
     const response = await filterAgent.getResponse(body);
-    log({response})
+
     res.send(response);
 })
 

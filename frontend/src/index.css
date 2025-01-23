@@ -6,6 +6,8 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-y: scroll;
+
 }
 
 
@@ -51,7 +53,7 @@ button {
 }
 
 button:hover {
-    border-color: #646cff;
+
 }
 
 button:focus,

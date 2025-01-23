@@ -9,3 +9,46 @@
         transform: rotate(360deg);
     }
 }
+
+.scrollable-section {
+    /*scrollbar-gutter: stable;*/
+    overflow-y: scroll;
+}
+
+.suggestion {
+    color: #000000;
+    background-color: #eee;
+    border: 1px solid transparent;
+    padding: 10px;
+    margin: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.suggestion:hover {
+    border:1px solid #444;
+
+}
+
+.reset-button{
+    background-color: #f8f9fa;
+    color: #222;
+    border: 1px solid #ccc;
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    outline: none;
+    transition: background-color 0.1s ease;
+}
+
+.reset-button:focus {
+    outline: none;
+}
+
+.reset-button:hover {
+    background-color: #e9ecef;
+}
+
+input:focus {
+    outline: none;
+}
