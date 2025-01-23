@@ -230,6 +230,7 @@ function AppDashboard() {
                             Send
                         </button>
                     </form>
+                    <div style={{width:"100%",textAlign:"center",color:"#444"}}>Try these suggestions</div>
                     <div style={{
                         display: "flex",
                         flexWrap: "wrap",  // Allows wrapping to multiple lines
@@ -271,7 +272,7 @@ function AppDashboard() {
                                                                                 style={{marginLeft: "1em"}}>Reset</button> : ""}</span></span>
                         </div>
                     </div>
-                    <h2 style={{color: "#4a4a4a", marginBottom: "10px"}}>Filters</h2>
+                    {/*<h2 style={{color: "#4a4a4a", marginBottom: "10px"}}>Filters</h2>*/}
                     <div style={{display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "10px"}}>
                         <input
                             type="date"
@@ -341,7 +342,7 @@ function AppDashboard() {
                             borderRadius: "5px",
                         }}
                     >
-                        <h2 style={{color: "#4a4a4a", marginBottom: "10px"}}>Expense Breakdown</h2>
+                        {/*<h2 style={{color: "#4a4a4a", marginBottom: "10px"}}>Expense Breakdown</h2>*/}
                         <canvas ref={canvasRef} width="400" height="300"
                                 style={{margin: "0 auto", display: "block"}}></canvas>
                     </div>
@@ -357,7 +358,7 @@ function AppDashboard() {
                             // overflowY: "auto",
                         }}
                     >
-                        <h2 style={{color: "#4a4a4a", marginBottom: "10px"}}>Transaction History</h2>
+                        {/*<h2 style={{color: "#4a4a4a", marginBottom: "10px"}}>Transaction History</h2>*/}
                         {filteredTransactions.length === 0 ? (
                             <div
                                 style={{

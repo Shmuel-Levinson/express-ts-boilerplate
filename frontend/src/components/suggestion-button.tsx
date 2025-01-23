@@ -1,4 +1,4 @@
-import React, {MouseEventHandler} from "react";
+
 import '../App.css'
 export function SuggestionButton({suggestion, clickHandler}: { suggestion: string, clickHandler: Function }) {
     return (
