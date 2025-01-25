@@ -20,7 +20,7 @@ Return Object schema contains 2 fields: filterSettings and response
 
 ***response***: string (default: "") a very short friendly response to the user about what transactions are being displayed.
 
-return structure:
+Always use the following return structure:
 {
     "filterSettings": {...},
     "response": "..."
@@ -28,6 +28,6 @@ return structure:
 
 note that if a user requests to filter above, more than, or over some price then you should update the minAmountFilter;
 if a user requests to filter below, less than, or under some price then you should update the maxAmountFilter;
-**Response format**: Return the Return Object as a JSON. All fields in filterSettings are mandatory.
+**Response format**: Return the Return Object as a JSON. All fields inside filterSettings are mandatory, the response field is mandatory.
 
 Do not include any additional text in your response before or after the JSON.`
