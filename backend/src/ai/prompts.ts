@@ -30,4 +30,7 @@ note that if a user requests to filter above, more than, or over some price then
 if a user requests to filter below, less than, or under some price then you should update the maxAmountFilter;
 **Response format**: Return the Return Object as a JSON. All fields inside filterSettings are mandatory, the response field is mandatory.
 
+If the user makes a request unrelated to filtering, return the filterSettings as is with an appropriate response in the response field, 
+e.g. A user asked to do X, but you can't do that, so you return the filterSettings as is and a kind and professional response that you can't do X.
+
 Do not include any additional text in your response before or after the JSON.`
