@@ -7,9 +7,8 @@ import bodyParser from 'body-parser';
 import {getGroqResponse, getGroqResponseWithDefinitionPrompt, systemMessage, userMessage} from "./groq/groq-api";
 import {log} from "console";
 import {getCompletion} from "./open-ai/open-ai-api";
-import {FILTER_INTERPRETER_DEFINITION_PROMPT} from "./ai/prompts";
-import {extractJsonFromString} from "./utils/object-utils";
-import {filterAgent} from "./ai/agents/filter-agent";
+import {FilterAgent} from "./ai/agents/filter-agent";
+import {ParserAgent} from "./ai/agents/parser-agent";
 
 
 dotenv.config();
@@ -63,8 +62,16 @@ app.post('gpt', async (req: Request, res: Response, next: NextFunction) => {
 
 app.post('/update-filter', async (req: Request, res: Response) => {
     const body = req.body;
-    const response = await filterAgent.getResponse(body);
+    const response = await FilterAgent.getResponse(body);
+    res.send(response);
+})
 
+app.post('/parse-user-prompt', async (req: Request, res: Response) => {
+    const body = req.body;
+    const response = await ParserAgent.getResponse(body);
+    if(!response?.response){
+        response.response = "Sorry, I couldn't parse your prompt. Please try again."
+    }
     res.send(response);
 })
 

@@ -60,11 +60,13 @@ function AppDashboard() {
     const [typeFilter, setTypeFilter] = useState("all")
     const [categoryFilter, setCategoryFilter] = useState("all")
     const [paymentMethodFilter, setPaymentMethodFilter] = useState("all")
-    const [filterSummary, setFilterSummary] = useState("")
-    const [chatInput, setChatInput] = useState("")
+    const [chatResponse, setChatResponse] = useState("")
+    const [chatInput, setChatInput] = useState("Anything under 50 bucks from last week?")
     const [isLoading, setIsLoading] = useState(false)
-    const [allShuffledSuggestions, setAllShuffledSuggestions] = useState(shuffleArray([...allSuggestions]))
-    const [visibleSuggestions, setVisibleSuggestions] = useState(allShuffledSuggestions.slice(0, 2))
+    // const [allShuffledSuggestions, setAllShuffledSuggestions] = useState(shuffleArray([...allSuggestions]))
+    const [allShuffledSuggestions, setAllShuffledSuggestions] = useState(([...allSuggestions]))
+    // const [visibleSuggestions, setVisibleSuggestions] = useState(allShuffledSuggestions.slice(0, 2))
+    const [visibleSuggestions, setVisibleSuggestions] = useState(allSuggestions.slice(0, 2))
     const canvasRef = useRef(null)
 
     useEffect(() => {
@@ -97,7 +99,7 @@ function AppDashboard() {
 
     const resetFilters = () => {
         setFilters(initialFilterState)
-        setFilterSummary("")
+        setChatResponse("")
     }
 
     const setFilters = (filters: any) => {
@@ -168,7 +170,7 @@ function AppDashboard() {
         })
     }
 
-    const handleChatSubmit = async (e: any, prompt: string = "") => {
+    const handleFilterAgentChatSubmit = async (e: any, prompt: string = "") => {
         if (e) {
             e.preventDefault()
         }
@@ -199,8 +201,35 @@ function AppDashboard() {
                 console.log("setting filter with ", res.data.filterSettings)
                 setFilters(res.data.filterSettings)
             }
-            setFilterSummary(res.data.response)
+            setChatResponse(res.data.response)
             setChatInput("")
+        } catch (error) {
+            console.error("Error updating filters:", error)
+        } finally {
+            setIsLoading(false)
+            // shuffleAndUpdateSuggestions()
+            console.log("done")
+        }
+    }
+
+    const handleChatSubmit = async (e: any, prompt: string = "") => {
+        if (e) {
+            e.preventDefault()
+        }
+        setIsLoading(true)
+        console.log("loading...")
+        try {
+            const res = await axios.post(
+                "http://localhost:5000/parse-user-prompt",
+                {
+                    prompt: prompt ? prompt : chatInput,
+                },
+                {withCredentials: true},
+            )
+            console.log(res.data)
+
+            setChatResponse(res.data.response)
+            // setChatInput("")
         } catch (error) {
             console.error("Error updating filters:", error)
         } finally {
@@ -209,6 +238,7 @@ function AppDashboard() {
             console.log("done")
         }
     }
+
 
     const shuffleAndUpdateSuggestions = () => {
         const shuffled = shuffleArray([...allSuggestions])
@@ -333,9 +363,9 @@ function AppDashboard() {
                         </div>
                         <div style={{display: isLoading ? "none" : "flex", alignItems: "center", justifyContent:"center",marginBottom: "10px", width:"100%"}}>
               <span>
-                {filterSummary}
+                {chatResponse}
                   <span>
-                  {filterSummary ? (
+                  {chatResponse ? (
                       <button onClick={resetFilters} className="reset-button" style={{marginLeft: "1em"}}>
                           Reset
                       </button>

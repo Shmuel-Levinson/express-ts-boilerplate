@@ -2,7 +2,7 @@ import {getGroqResponse, systemMessage, userMessage} from "../../groq/groq-api";
 import {FILTER_INTERPRETER_DEFINITION_PROMPT} from "../prompts";
 import {extractJsonFromString} from "../../utils/object-utils";
 
-export const filterAgent = {
+export const FilterAgent = {
     name: "filterAgent",
     description: "Interprets user requests to update the filter settings and returns a response.",
     getResponse: async (body: any) => {

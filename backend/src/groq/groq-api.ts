@@ -10,21 +10,40 @@ const groq = new Groq({apiKey: process.env.GROQ_API_KEY, httpAgent: httpsAgent})
 export type ChatMessage = { role: "assistant" | "system" | "user"; content: string };
 
 export async function getGroqResponse(prompt: string, messageHistory: ChatMessage[]) {
-    log({messageHistory,prompt});
+    log({messageHistory, prompt});
     try {
         const chatCompletion = await groq.chat.completions.create({
-            "messages": messageHistory.concat([{role: "user", content: prompt}]),
-            "model": "llama3-8b-8192",
-            "temperature": 1,
-            "max_tokens": 1024,
-            "top_p": 1,
-            "stream": false,
-            "stop": null
+            messages: messageHistory.concat([{role: "user", content: prompt}]),
+            model: "llama3-8b-8192",
+            temperature: 1,
+            max_tokens: 1024,
+            top_p: 1,
+            stream: false,
+            stop: null
         });
         const newHistory: ChatMessage[] = messageHistory.concat([{role: "user", content: prompt}]);
         return {
             response: chatCompletion.choices[0].message.content,
             messageHistory: newHistory
+        }
+    } catch (error) {
+        console.error(error);
+    }
+}
+
+export async function getGroqResponseFromMessages(messages:ChatMessage[]){
+    try {
+        const chatCompletion = await groq.chat.completions.create({
+            messages: messages,
+            model: "llama3-8b-8192",
+            temperature: 1,
+            max_tokens: 1024,
+            top_p: 1,
+            stream: false,
+            stop: null
+        });
+        return {
+            response: chatCompletion.choices[0].message.content,
         }
     } catch (error) {
         console.error(error);
