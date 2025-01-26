@@ -9,6 +9,7 @@ import {log} from "console";
 import {getCompletion} from "./open-ai/open-ai-api";
 import {FilterAgent} from "./ai/agents/filter-agent";
 import {ParserAgent} from "./ai/agents/parser-agent";
+import {NavigationAgent} from "./ai/agents/navigation-agent";
 
 
 dotenv.config();
@@ -26,6 +27,11 @@ app.use(cookieParser()); // Parse cookies
 app.use(bodyParser.json()); // Parse JSON request bodies
 app.use(bodyParser.urlencoded({extended: true})); // Parse URL-encoded request bodies
 
+
+const AGENTS: Record<string, any> = {
+    "Transaction Filters Agent": FilterAgent,
+    "Navigation Agent": NavigationAgent,
+};
 
 app.get('/ping', async (req: Request, res: Response, next: NextFunction) => {
 
@@ -69,10 +75,24 @@ app.post('/update-filter', async (req: Request, res: Response) => {
 app.post('/parse-user-prompt', async (req: Request, res: Response) => {
     const body = req.body;
     const response = await ParserAgent.getResponse(body);
-    if(!response?.response){
+    if (!response?.response) {
         response.response = "Sorry, I couldn't parse your prompt. Please try again."
     }
     res.send(response);
+})
+
+app.post('/agent-executor', async (req: Request, res: Response) => {
+    const tasks = req.body;
+    const responses = await Promise.all(tasks.map((async (task:any) => {
+        const agent: { name: string, getResponse: Function } = AGENTS[task.agent];
+        const response = await agent.getResponse(task);
+        return {
+            agent: task.agent,
+            response: response
+        }
+    })))
+    res.send(responses);
+    log('executed');
 })
 
 app.post('/update-filter-mock', async (req: Request, res: Response) => {

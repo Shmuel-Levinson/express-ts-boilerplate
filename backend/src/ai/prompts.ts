@@ -13,10 +13,10 @@ Return Object schema contains 2 fields: filterSettings and response
     - **endDateFilter**: string (format: YYYY-MM-DD, default: "")   
     - **minAmountFilter**: "" or number (default: "")
     - **maxAmountFilter**: "" or number (default: "")  
-    - **typeFilter**: (possible values: ["expense", "income", "all"]; default: "all")
-    - **paymentMethodFilter**: (possible values: ["cash", "card", "cheque", "bank transfer", "all"]; default: "all")
-    - **categoryFilter**: (possible values: ["groceries", "salary", "travel", "gas", "freelance", "electronics", "bonus", "dining", "entertainment", "rent", 
-    "clothing", "medical", "utilities", "subscriptions", "home", "transport"]; default: "all")
+    - **typeFilter**: (possible values: "expense", "income", "all"; default: "all")
+    - **paymentMethodFilter**: (possible values: "cash", "card", "cheque", "bank transfer", "all"; default: "all")
+    - **categoryFilter**: (possible values: "groceries", "salary", "travel", "gas", "freelance", "electronics", "bonus", "dining", "entertainment", "rent", 
+    "clothing", "medical", "utilities", "subscriptions", "home", "transport"; default: "all")
 
 ***response***: string (default: "") a very short friendly response to the user about what transactions are being displayed.
 

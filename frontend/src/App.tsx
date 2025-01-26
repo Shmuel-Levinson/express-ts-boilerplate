@@ -51,6 +51,55 @@ const generateColor = (index) => {
     return `hsl(${hue}, 80%, 70%)` // Keeping saturation and lightness constant for consistency
 }
 
+function SuggestionsSection(visibleSuggestions: string[], handleMoreSuggestions: () => void) {
+    return <>
+        {visibleSuggestions.length < allSuggestions.length && (
+            <div style={{display: "flex", justifyContent: "center", marginBottom: "20px"}}>
+                <button
+                    onClick={handleMoreSuggestions}
+                    style={{
+                        padding: "5px 10px",
+                        fontSize: "14px",
+                        backgroundColor: "#f0f0f0",
+                        color: "#333",
+                        border: "1px solid #ccc",
+                        borderRadius: "3px",
+                        cursor: "pointer",
+                    }}
+                >
+                    More suggestions
+                </button>
+            </div>
+        )}
+    </>;
+}
+
+function spinner() {
+    return <div
+        style={{
+            width: "20px",
+            height: "20px",
+            border: "2px solid #f3f3f3",
+            borderTop: "2px solid #3498db",
+            borderRadius: "50%",
+            animation: "spin 1s linear infinite",
+            marginRight: "10px",
+        }}
+    ></div>;
+}
+
+function Loader(isLoading: boolean) {
+    return <div style={{
+        display: isLoading ? "flex" : "none",
+        justifyContent: "center",
+        alignItems: "center",
+        marginBottom: "10px"
+    }}>
+        {spinner()}
+        <span>Working...</span>
+    </div>;
+}
+
 function AppDashboard() {
     const [filteredTransactions, setFilteredTransactions] = useState(TRANSACTIONS)
     const [startDate, setStartDate] = useState("")
@@ -60,7 +109,8 @@ function AppDashboard() {
     const [typeFilter, setTypeFilter] = useState("all")
     const [categoryFilter, setCategoryFilter] = useState("all")
     const [paymentMethodFilter, setPaymentMethodFilter] = useState("all")
-    const [chatResponse, setChatResponse] = useState("")
+    const [parserResponse, setParserResponse] = useState("")
+    const [agentsResponses, setAgentsResponses] = useState<string[]>([])
     const [chatInput, setChatInput] = useState("Anything under 50 bucks from last week?")
     const [isLoading, setIsLoading] = useState(false)
     // const [allShuffledSuggestions, setAllShuffledSuggestions] = useState(shuffleArray([...allSuggestions]))
@@ -68,6 +118,46 @@ function AppDashboard() {
     // const [visibleSuggestions, setVisibleSuggestions] = useState(allShuffledSuggestions.slice(0, 2))
     const [visibleSuggestions, setVisibleSuggestions] = useState(allSuggestions.slice(0, 2))
     const canvasRef = useRef(null)
+
+    const Agents: Record<string, { augmentWithContext: Function, resolve: Function }> = {
+        "Transaction Filters Agent": {
+            augmentWithContext: (task: any) => {
+                return {
+                    ...task,
+                    context: {
+                        currentFilter: {
+                            startDateFilter: startDate,
+                            endDateFilter: endDate,
+                            minAmountFilter: minAmountFilter,
+                            maxAmountFilter: maxAmountFilter,
+                            typeFilter: typeFilter,
+                            categoryFilter: categoryFilter,
+                            paymentMethodFilter: paymentMethodFilter,
+                        }
+
+                    }
+
+                }
+            },
+            resolve: (task: any) => {
+                setFilters(task.response.filterSettings);
+            }
+        },
+        "Navigation Agent":{
+            augmentWithContext: (task: any) =>{
+                return {
+                    ...task,
+                    context: {
+                        currentPage:"home"
+                    }
+                }
+            },
+            resolve: (task:any)=>{
+                console.log("NAVIGATION SIMULATION!", task.response.page)
+            }
+        }
+    }
+
 
     useEffect(() => {
         applyFilters()
@@ -99,7 +189,7 @@ function AppDashboard() {
 
     const resetFilters = () => {
         setFilters(initialFilterState)
-        setChatResponse("")
+        setParserResponse("")
     }
 
     const setFilters = (filters: any) => {
@@ -194,14 +284,14 @@ function AppDashboard() {
                 {withCredentials: true},
             )
             console.log(res.data)
-            if(isEmpty(res.data?.filterSettings)){
+            if (isEmpty(res.data?.filterSettings)) {
                 resetFilters()
             }
             if (Array.from(Object.keys(res.data.filterSettings)).length > 0) {
                 console.log("setting filter with ", res.data.filterSettings)
                 setFilters(res.data.filterSettings)
             }
-            setChatResponse(res.data.response)
+            setParserResponse(res.data.response)
             setChatInput("")
         } catch (error) {
             console.error("Error updating filters:", error)
@@ -219,16 +309,39 @@ function AppDashboard() {
         setIsLoading(true)
         console.log("loading...")
         try {
-            const res = await axios.post(
+            const parseUserPromptRes = await axios.post(
                 "http://localhost:5000/parse-user-prompt",
                 {
                     prompt: prompt ? prompt : chatInput,
                 },
                 {withCredentials: true},
             )
-            console.log(res.data)
+            const {response, agentTasks} = parseUserPromptRes.data
+            if (!(response || agentTasks)) {
+                setChatInput("")
+                setParserResponse("Server error")
+                return
+            }
+            setParserResponse(parseUserPromptRes.data.response)
+            const augmentedTasks = agentTasks.map((task: { agent: string, prompt: string }) => {
+                    const agent = Agents[task["agent"]]
+                    return agent.augmentWithContext(task)
+                }
+            )
 
-            setChatResponse(res.data.response)
+            const agentExecutorRes = await axios.post("http://localhost:5000/agent-executor", augmentedTasks)
+            const tasksForResolvers = agentExecutorRes.data
+
+            for (const task of tasksForResolvers) {
+                const agent = Agents[task.agent]
+                if (!agent) {
+                    console.log("no agent found for task", task)
+                    return
+                }
+                agent.resolve(task);
+            }
+            setAgentsResponses(tasksForResolvers.map(task => task.response.response));
+            console.log()
             // setChatInput("")
         } catch (error) {
             console.error("Error updating filters:", error)
@@ -318,7 +431,6 @@ function AppDashboard() {
                             display: "flex",
                             flexWrap: "wrap",
                             justifyContent: "center",
-                            // alignItems: "center",
                             gap: "3px",
                             marginBottom: "10px",
                         }}
@@ -328,44 +440,20 @@ function AppDashboard() {
                                                      clickHandler={handleChatSubmit}/>
                         })}
                     </div>
-                    {visibleSuggestions.length < allSuggestions.length && (
-                        <div style={{display: "flex", justifyContent: "center", marginBottom: "20px"}}>
-                            <button
-                                onClick={handleMoreSuggestions}
-                                style={{
-                                    padding: "5px 10px",
-                                    fontSize: "14px",
-                                    backgroundColor: "#f0f0f0",
-                                    color: "#333",
-                                    border: "1px solid #ccc",
-                                    borderRadius: "3px",
-                                    cursor: "pointer",
-                                }}
-                            >
-                                More suggestions
-                            </button>
-                        </div>
-                    )}
-                    <div style={{height: 50}}>
-                        <div style={{display: isLoading ? "flex" : "none", justifyContent:"center", alignItems: "center", marginBottom: "10px"}}>
-                            <div
-                                style={{
-                                    width: "20px",
-                                    height: "20px",
-                                    border: "2px solid #f3f3f3",
-                                    borderTop: "2px solid #3498db",
-                                    borderRadius: "50%",
-                                    animation: "spin 1s linear infinite",
-                                    marginRight: "10px",
-                                }}
-                            ></div>
-                            <span>Working...</span>
-                        </div>
-                        <div style={{display: isLoading ? "none" : "flex", alignItems: "center", justifyContent:"center",marginBottom: "10px", width:"100%"}}>
+                    {SuggestionsSection(visibleSuggestions, handleMoreSuggestions)}
+                    <div style={{height: 100}}>
+                        {Loader(isLoading)}
+                        <div style={{
+                            display: isLoading ? "none" : "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            marginBottom: "10px",
+                            width: "100%"
+                        }}>
               <span>
-                {chatResponse}
+                {parserResponse}
                   <span>
-                  {chatResponse ? (
+                  {parserResponse ? (
                       <button onClick={resetFilters} className="reset-button" style={{marginLeft: "1em"}}>
                           Reset
                       </button>
@@ -374,6 +462,10 @@ function AppDashboard() {
                   )}
                 </span>
               </span>
+
+                        </div>
+                        <div style={{color: "#c56c6c", textAlign: "center"}}>
+                            {agentsResponses.map(r => <div>{r}</div>)}
                         </div>
                     </div>
                     <div style={{display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "10px"}}>
