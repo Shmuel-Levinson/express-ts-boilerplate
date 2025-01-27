@@ -1,10 +1,10 @@
-import React, {useState, useEffect, useRef} from "react"
+import React, { useState, useEffect, useRef } from "react"
 import axios from "axios"
-import {SuggestionButton} from "./components/suggestion-button.tsx"
+import { SuggestionButton } from "./components/suggestion-button.tsx"
 import "./App.css"
-import {TRANSACTIONS} from "./mock-data.ts"
-import {getRandomSample, shuffleArray} from "./utils/array-utils.ts"
-import {isEmpty} from "./utils/object-utils.ts";
+import { TRANSACTIONS } from "./mock-data.ts"
+import { getRandomSample, shuffleArray } from "./utils/array-utils.ts"
+import { isEmpty } from "./utils/object-utils.ts"
 
 const initialFilterState = {
     startDateFilter: "",
@@ -53,40 +53,44 @@ const generateColor = (index) => {
 }
 
 function SuggestionsSection(visibleSuggestions: string[], handleMoreSuggestions: () => void) {
-    return <>
-        {visibleSuggestions.length < allSuggestions.length && (
-            <div style={{display: "flex", justifyContent: "center", marginBottom: "20px"}}>
-                <button
-                    onClick={handleMoreSuggestions}
-                    style={{
-                        padding: "5px 10px",
-                        fontSize: "14px",
-                        backgroundColor: "#f0f0f0",
-                        color: "#333",
-                        border: "1px solid #ccc",
-                        borderRadius: "3px",
-                        cursor: "pointer",
-                    }}
-                >
-                    More suggestions
-                </button>
-            </div>
-        )}
-    </>;
+    return (
+        <>
+            {visibleSuggestions.length < allSuggestions.length && (
+                <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
+                    <button
+                        onClick={handleMoreSuggestions}
+                        style={{
+                            padding: "5px 10px",
+                            fontSize: "14px",
+                            backgroundColor: "#f0f0f0",
+                            color: "#333",
+                            border: "1px solid #ccc",
+                            borderRadius: "3px",
+                            cursor: "pointer",
+                        }}
+                    >
+                        More suggestions
+                    </button>
+                </div>
+            )}
+        </>
+    )
 }
 
 function spinner() {
-    return <div
-        style={{
-            width: "20px",
-            height: "20px",
-            border: "2px solid #f3f3f3",
-            borderTop: "2px solid #3498db",
-            borderRadius: "50%",
-            animation: "spin 1s linear infinite",
-            marginRight: "10px",
-        }}
-    ></div>;
+    return (
+        <div
+            style={{
+                width: "20px",
+                height: "20px",
+                border: "2px solid #f3f3f3",
+                borderTop: "2px solid #3498db",
+                borderRadius: "50%",
+                animation: "spin 1s linear infinite",
+                marginRight: "10px",
+            }}
+        ></div>
+    )
 }
 
 function Loader(isLoading: boolean) {
@@ -115,10 +119,11 @@ function AppDashboard() {
     const [chatInput, setChatInput] = useState("Anything under 50 bucks from last week?")
     const [isLoading, setIsLoading] = useState(false)
     // const [allShuffledSuggestions, setAllShuffledSuggestions] = useState(shuffleArray([...allSuggestions]))
-    const [allShuffledSuggestions, setAllShuffledSuggestions] = useState(([...allSuggestions]))
+    const [allShuffledSuggestions, setAllShuffledSuggestions] = useState([...allSuggestions])
     // const [visibleSuggestions, setVisibleSuggestions] = useState(allShuffledSuggestions.slice(0, 2))
     const [visibleSuggestions, setVisibleSuggestions] = useState(allSuggestions.slice(0, 2))
     const canvasRef = useRef(null)
+    const [currentPage, setCurrentPage] = useState("transactions")
 
     const Agents: Record<string, { augmentWithContext: Function, resolve: Function }> = {
         "Transaction Filters Agent": {
@@ -149,16 +154,16 @@ function AppDashboard() {
                 return {
                     ...task,
                     context: {
-                        currentPage:"home"
+                        currentPage: currentPage
                     }
                 }
             },
             resolve: (task:any)=>{
                 console.log("NAVIGATION SIMULATION!", task.response.page)
+                setCurrentPage(task.response.page)
             }
         }
     }
-
 
     useEffect(() => {
         applyFilters()
@@ -282,7 +287,7 @@ function AppDashboard() {
                     },
                     prompt: prompt ? prompt : chatInput,
                 },
-                {withCredentials: true},
+                { withCredentials: true },
             )
             console.log(res.data)
             if (isEmpty(res.data?.filterSettings)) {
@@ -317,9 +322,9 @@ function AppDashboard() {
                 {
                     prompt: prompt ? prompt : chatInput,
                 },
-                {withCredentials: true},
+                { withCredentials: true },
             )
-            const {response, agentTasks} = parseUserPromptRes.data
+            const { response, agentTasks } = parseUserPromptRes.data
             if (!(response || agentTasks)) {
                 setChatInput("")
                 setParserResponse("Server error")
@@ -335,17 +340,20 @@ function AppDashboard() {
             const agentExecutorRes = await axios.post("http://localhost:5000/agent-executor", augmentedTasks)
             const tasksForResolvers = agentExecutorRes.data
 
-            for (const task of tasksForResolvers) {
-                const agent = Agents[task.agent]
-                if (!agent) {
-                    console.log("no agent found for task", task)
-                    return
-                }
-                agent.resolve(task);
-            }
-            setAgentsResponses(tasksForResolvers.map(task => task.response.response));
-            console.log()
-            // setChatInput("")
+            tasksForResolvers.forEach((task, index) => {
+                setTimeout(() => {
+                    const agent = Agents[task.agent];
+                    if (!agent) {
+                        console.log("No agent found for task", task);
+                        return;
+                    }
+                    agent.resolve(task);
+                    setAgentsResponses(prev => [...prev,task.response.response])
+                }, index * 1000);
+            });
+
+
+
         } catch (error) {
             console.error("Error updating filters:", error)
         } finally {
@@ -354,7 +362,6 @@ function AppDashboard() {
             console.log("done")
         }
     }
-
 
     const shuffleAndUpdateSuggestions = () => {
         const shuffled = shuffleArray([...allSuggestions])
@@ -387,7 +394,34 @@ function AppDashboard() {
                     backgroundColor: "#f0f0f0",
                 }}
             >
-                <h1 style={{color: "#333", textAlign: "center"}}></h1>
+                <div
+                    style={{
+                        display: "flex",
+                        justifyContent: "space-around",
+                        padding: "10px",
+                        backgroundColor: "#f8f9fa",
+                        marginBottom: "20px",
+                    }}
+                >
+                    {["transactions", "accounts", "settings", "dashboard", "profile", "notifications"].map((page) => (
+                        <button
+                            key={page}
+                            onClick={() => setCurrentPage(page)}
+                            style={{
+                                padding: "10px 20px",
+                                fontSize: "16px",
+                                backgroundColor: currentPage === page ? "#007bff" : "transparent",
+                                color: currentPage === page ? "white" : "#333",
+                                border: "none",
+                                borderRadius: "5px",
+                                cursor: "pointer",
+                            }}
+                        >
+                            {page.charAt(0).toUpperCase() + page.slice(1)}
+                        </button>
+                    ))}
+                </div>
+                <h1 style={{ color: "#333", textAlign: "center" }}></h1>
 
                 <div
                     style={{
@@ -397,7 +431,7 @@ function AppDashboard() {
                         marginBottom: "20px",
                     }}
                 >
-                    <form onSubmit={(e) => handleChatSubmit(e)} style={{display: "flex", marginBottom: "20px"}}>
+                    <form onSubmit={(e) => handleChatSubmit(e)} style={{ display: "flex", marginBottom: "20px" }}>
                         <input
                             type="text"
                             value={chatInput}
@@ -425,39 +459,40 @@ function AppDashboard() {
                                 cursor: "pointer",
                             }}
                         >
-                            {'➤'}
+                            {"➤"}
                         </button>
                     </form>
-                    <div style={{width: "100%", textAlign: "center", color: "#444"}}>Try these suggestions</div>
-                    <div
-                        style={{
-                            display: "flex",
-                            flexWrap: "wrap",
-                            justifyContent: "center",
-                            gap: "3px",
-                            marginBottom: "10px",
-                        }}
-                    >
-                        {visibleSuggestions.map((suggestion: string, index) => {
-                            return <SuggestionButton key={index} suggestion={suggestion}
-                                                     clickHandler={handleChatSubmit}/>
-                        })}
-                    </div>
-                    {SuggestionsSection(visibleSuggestions, handleMoreSuggestions)}
-                    <div style={{height: 100}}>
+                    {/*<div style={{ width: "100%", textAlign: "center", color: "#444" }}>Try these suggestions</div>*/}
+                    {/*<div*/}
+                    {/*    style={{*/}
+                    {/*        display: "flex",*/}
+                    {/*        flexWrap: "wrap",*/}
+                    {/*        justifyContent: "center",*/}
+                    {/*        gap: "3px",*/}
+                    {/*        marginBottom: "10px",*/}
+                    {/*    }}*/}
+                    {/*>*/}
+                    {/*    {visibleSuggestions.map((suggestion: string, index) => {*/}
+                    {/*        return <SuggestionButton key={index} suggestion={suggestion} clickHandler={handleChatSubmit} />*/}
+                    {/*    })}*/}
+                    {/*</div>*/}
+                    {/*{SuggestionsSection(visibleSuggestions, handleMoreSuggestions)}*/}
+                    <div style={{ height: 100 }}>
                         {Loader(isLoading)}
-                        <div style={{
-                            display: isLoading ? "none" : "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            marginBottom: "10px",
-                            width: "100%"
-                        }}>
+                        <div
+                            style={{
+                                display: isLoading ? "none" : "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                marginBottom: "10px",
+                                width: "100%",
+                            }}
+                        >
               <span>
                 {parserResponse}
                   <span>
                   {parserResponse ? (
-                      <button onClick={resetFilters} className="reset-button" style={{marginLeft: "1em"}}>
+                      <button onClick={resetFilters} className="reset-button" style={{ marginLeft: "1em" }}>
                           Reset
                       </button>
                   ) : (
@@ -465,45 +500,58 @@ function AppDashboard() {
                   )}
                 </span>
               </span>
-
                         </div>
-                        <div style={{color: "#c56c6c", textAlign: "center"}}>
-                            {agentsResponses.map(r => <div>{r}</div>)}
+                        <div style={{ color: "#c56c6c", textAlign: "center" }}>
+                            {agentsResponses.map((r) => (
+                                <div>{r}</div>
+                            ))}
                         </div>
                     </div>
-                    <div style={{display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "10px"}}>
+                </div>
+
+                {/* Filters moved here */}
+                <div
+                    style={{
+                        backgroundColor: "#fff",
+                        padding: "20px",
+                        borderRadius: "5px",
+                        marginBottom: "20px",
+                    }}
+                >
+                    <h2 style={{ marginBottom: "15px" }}>Filters</h2>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "10px" }}>
                         <input
                             type="date"
                             placeholder="Start Date"
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
-                            style={{padding: "5px", borderRadius: "3px", border: "1px solid #ccc"}}
+                            style={{ padding: "5px", borderRadius: "3px", border: "1px solid #ccc" }}
                         />
                         <input
                             type="date"
                             placeholder="End Date"
                             value={endDate}
                             onChange={(e) => setEndDate(e.target.value)}
-                            style={{padding: "5px", borderRadius: "3px", border: "1px solid #ccc"}}
+                            style={{ padding: "5px", borderRadius: "3px", border: "1px solid #ccc" }}
                         />
                         <input
                             type="number"
                             placeholder="Min Amount"
                             value={minAmountFilter}
                             onChange={(e) => setminAmountFilter(e.target.value)}
-                            style={{padding: "5px", borderRadius: "3px", border: "1px solid #ccc", width: "8em"}}
+                            style={{ padding: "5px", borderRadius: "3px", border: "1px solid #ccc", width: "8em" }}
                         />
                         <input
                             type="number"
                             placeholder="Max Amount"
                             value={maxAmountFilter}
                             onChange={(e) => setmaxAmountFilter(e.target.value)}
-                            style={{padding: "5px", borderRadius: "3px", border: "1px solid #ccc", width: "8em"}}
+                            style={{ padding: "5px", borderRadius: "3px", border: "1px solid #ccc", width: "8em" }}
                         />
                         <select
                             value={typeFilter}
                             onChange={(e) => setTypeFilter(e.target.value)}
-                            style={{padding: "5px", borderRadius: "3px", border: "1px solid #ccc"}}
+                            style={{ padding: "5px", borderRadius: "3px", border: "1px solid #ccc" }}
                         >
                             <option value="all">All Types</option>
                             <option value="income">Income</option>
@@ -512,7 +560,7 @@ function AppDashboard() {
                         <select
                             value={categoryFilter}
                             onChange={(e) => setCategoryFilter(e.target.value)}
-                            style={{padding: "5px", borderRadius: "3px", border: "1px solid #ccc"}}
+                            style={{ padding: "5px", borderRadius: "3px", border: "1px solid #ccc" }}
                         >
                             {["All Categories", ...Array.from(new Set(TRANSACTIONS.map((t) => t.category)))].map((item, i) => (
                                 <option value={i === 0 ? "all" : item} key={"option-key-" + item}>
@@ -523,7 +571,7 @@ function AppDashboard() {
                         <select
                             value={paymentMethodFilter}
                             onChange={(e) => setPaymentMethodFilter(e.target.value)}
-                            style={{padding: "5px", borderRadius: "3px", border: "1px solid #ccc"}}
+                            style={{ padding: "5px", borderRadius: "3px", border: "1px solid #ccc" }}
                         >
                             <option value="all">All Payment Methods</option>
                             <option value="card">Card</option>
@@ -536,8 +584,7 @@ function AppDashboard() {
                         </button>
                     </div>
                 </div>
-
-                <div style={{display: "flex", gap: "20px"}}>
+                <div style={{ display: "flex", gap: "20px" }}>
                     <div
                         style={{
                             flex: 1,
@@ -546,8 +593,7 @@ function AppDashboard() {
                             borderRadius: "5px",
                         }}
                     >
-                        <canvas ref={canvasRef} width="500" height="500"
-                                style={{margin: "0 auto", display: "block"}}></canvas>
+                        <canvas ref={canvasRef} width="500" height="500" style={{ margin: "0 auto", display: "block" }}></canvas>
                     </div>
 
                     <div
@@ -587,7 +633,7 @@ function AppDashboard() {
                                 >
                                     <span>{transaction.date}</span>
                                     <span>{transaction.description}</span>
-                                    <span style={{color: transaction.type === "income" ? "green" : "red"}}>
+                                    <span style={{ color: transaction.type === "income" ? "green" : "red" }}>
                     {transaction.type === "income" ? "+" : "-"}${Math.abs(transaction.amount).toFixed(2)}
                   </span>
                                     <span>{transaction.category}</span>
