@@ -27,12 +27,12 @@ export const FilterAgent = {
         return response;
     },
 
-    getResponse: async ({prompt, currentFilter}: {prompt: string, currentFilter: any}): Promise<any> => {
+    getResponse: async ({prompt, context}: {prompt: string, context: any}): Promise<any> => {
 
         // const history = body.history || [];
         const fullHistory = [
             systemMessage(FILTER_INTERPRETER_DEFINITION_PROMPT),
-            userMessage("Current filter settings: \n" + JSON.stringify(currentFilter))]
+            userMessage("Current filter settings: \n" + JSON.stringify(context.currentFilter))]
 
         const answer = await getGroqResponse(prompt, fullHistory);
         let response = {}

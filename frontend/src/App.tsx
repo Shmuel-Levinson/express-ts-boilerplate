@@ -17,6 +17,7 @@ const initialFilterState = {
 }
 
 const allSuggestions = [
+    "take me to the page where i can update my avatar and show me expenses under 200 paid with cash in january",
     "Uh, could you show me what I spent on gas?",
     "Hey, can I see my travel expenses for this month, please?",
     "Do you have a record of my salary history?",
@@ -307,6 +308,8 @@ function AppDashboard() {
             e.preventDefault()
         }
         setIsLoading(true)
+        setParserResponse("")
+        setAgentsResponses([])
         console.log("loading...")
         try {
             const parseUserPromptRes = await axios.post(
