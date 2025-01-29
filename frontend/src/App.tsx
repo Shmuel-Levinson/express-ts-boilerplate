@@ -1,10 +1,16 @@
-import React, { useState, useEffect, useRef } from "react"
+import React, {useState, useEffect, useRef} from "react"
 import axios from "axios"
-import { SuggestionButton } from "./components/suggestion-button.tsx"
 import "./App.css"
-import { TRANSACTIONS } from "./mock-data.ts"
-import { getRandomSample, shuffleArray } from "./utils/array-utils.ts"
-import { isEmpty } from "./utils/object-utils.ts"
+import {TRANSACTIONS} from "./mock-data.ts"
+import {isEmpty} from "./utils/object-utils.ts"
+import Accounts from './components/Accounts';
+import Settings from './components/Settings';
+import Dashboard from './components/Dashboard';
+import Profile from './components/Profile';
+import Notifications from './components/Notifications';
+import { Loader } from './components/Loader';
+import { generateColor, generatePastelColor } from './utils/color-utils';
+import { allSuggestions } from './data/suggestions';
 
 const initialFilterState = {
     startDateFilter: "",
@@ -16,96 +22,52 @@ const initialFilterState = {
     paymentMethodFilter: "all",
 }
 
-const allSuggestions = [
-    "take me to the page where i can update my avatar and show me expenses under 200 paid with cash in january",
-    "Uh, could you show me what I spent on gas?",
-    "Hey, can I see my travel expenses for this month, please?",
-    "Do you have a record of my salary history?",
-    "I'm trying to remember when I spent more than $1550 on groceries.",
-    "Can you pull up my entertainment expenses?",
-    "I'd like to see transactions between 500 and 1000 dollars.",
-    "What did I pay for utilities last month?",
-    "Can you show me income over two thousand dollars?",
-    "What about my restaurant spending?",
-    "Can I see everything from last week?",
-    "Show me all the money I made in January.",
-    "What were my expenses for the whole of 2023?",
-    "Could you show me everything over a thousand dollars from last month?",
-    "Anything under 50 bucks from last week?",
-    "I'm looking for expenses between one and five hundred dollars.",
-    "Show me all income from the first half of January.",
-    "Can I see all my rent payments from last year?",
-    "Show me everything I spent on food between 50 and 100 dollars.",
-    "I need to see my shopping expenses from last week that were over 200 dollars.",
-    "Can you pull up my salary income between two and five thousand dollars from last month?",
-    "Show me all my travel spending from June first to July first that was less than a thousand dollars.",
-    "I'm looking for expenses from last year between 500 and 1000 dollars for bills.",
-    "Show me all transactions made with my credit card.",
-    "Can you display all cash payments from last month?",
-    "I want to see all bank transfers over $1000.",
-    "What cheques did I write last quarter?",
-]
-
-// Function to generate a random color
-const generateColor = (index) => {
-    const hue = (index * 137.5) % 360 // Use golden angle approximation for distribution
-    return `hsl(${hue}, 80%, 70%)` // Keeping saturation and lightness constant for consistency
+export interface Widget {
+    id: string;
+    gridArea: string;
+    type: 'pie-chart' | 'bar-graph' | 'text';
+    color?: string;
+    name: string;
+    groupBy?: 'category' | 'paymentMethod' | 'type';
 }
 
-function SuggestionsSection(visibleSuggestions: string[], handleMoreSuggestions: () => void) {
-    return (
-        <>
-            {visibleSuggestions.length < allSuggestions.length && (
-                <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
-                    <button
-                        onClick={handleMoreSuggestions}
-                        style={{
-                            padding: "5px 10px",
-                            fontSize: "14px",
-                            backgroundColor: "#f0f0f0",
-                            color: "#333",
-                            border: "1px solid #ccc",
-                            borderRadius: "3px",
-                            cursor: "pointer",
-                        }}
-                    >
-                        More suggestions
-                    </button>
-                </div>
-            )}
-        </>
-    )
+export interface Settings {
+    density: 'comfortable' | 'cozy' | 'compact';
+    notifications: {
+        email: boolean;
+        push: boolean;
+        desktop: boolean;
+    };
+    security: {
+        twoFactorAuth: boolean;
+        loginAlerts: boolean;
+    };
+    display: {
+        showToolbar: boolean;
+        enableAnimations: boolean;
+        showStatusBar: boolean;
+    };
 }
 
-function spinner() {
-    return (
-        <div
-            style={{
-                width: "20px",
-                height: "20px",
-                border: "2px solid #f3f3f3",
-                borderTop: "2px solid #3498db",
-                borderRadius: "50%",
-                animation: "spin 1s linear infinite",
-                marginRight: "10px",
-            }}
-        ></div>
-    )
-}
+const lightTheme = {
+    background: '#ffffff',
+    surface: '#f5f5f5',
+    surface2: '#e8e8e8',
+    text: '#000000',
+    border: '#cccccc',
+    primary: '#007bff'
+};
 
-function Loader(isLoading: boolean) {
-    return <div style={{
-        display: isLoading ? "flex" : "none",
-        justifyContent: "center",
-        alignItems: "center",
-        marginBottom: "10px"
-    }}>
-        {spinner()}
-        <span>Working...</span>
-    </div>;
-}
+const darkTheme = {
+    background: '#121212',
+    surface: '#1e1e1e',
+    surface2: '#2d2d2d',
+    text: '#ffffff',
+    border: '#404040',
+    primary: '#007bff'
+};
 
-function AppDashboard() {
+function App() {
     const [filteredTransactions, setFilteredTransactions] = useState(TRANSACTIONS)
     const [startDate, setStartDate] = useState("")
     const [endDate, setEndDate] = useState("")
@@ -118,12 +80,32 @@ function AppDashboard() {
     const [agentsResponses, setAgentsResponses] = useState<string[]>([])
     const [chatInput, setChatInput] = useState("Anything under 50 bucks from last week?")
     const [isLoading, setIsLoading] = useState(false)
-    // const [allShuffledSuggestions, setAllShuffledSuggestions] = useState(shuffleArray([...allSuggestions]))
     const [allShuffledSuggestions, setAllShuffledSuggestions] = useState([...allSuggestions])
-    // const [visibleSuggestions, setVisibleSuggestions] = useState(allShuffledSuggestions.slice(0, 2))
     const [visibleSuggestions, setVisibleSuggestions] = useState(allSuggestions.slice(0, 2))
     const canvasRef = useRef(null)
     const [currentPage, setCurrentPage] = useState("transactions")
+    const [isDarkMode, setIsDarkMode] = useState(false)
+    const [widgets, setWidgets] = useState<Widget[]>([])
+    const [theme, setTheme] = useState<string>('light');
+    const [settings, setSettings] = useState<Settings>({
+        density: 'comfortable',
+        notifications: {
+            email: true,
+            push: false,
+            desktop: true,
+        },
+        security: {
+            twoFactorAuth: false,
+            loginAlerts: true,
+        },
+        display: {
+            showToolbar: true,
+            enableAnimations: true,
+            showStatusBar: true,
+        }
+    });
+
+    const currentTheme = theme === 'dark' ? darkTheme : lightTheme;
 
     const Agents: Record<string, { augmentWithContext: Function, resolve: Function }> = {
         "Transaction Filters Agent": {
@@ -149,8 +131,8 @@ function AppDashboard() {
                 setFilters(task.response.filterSettings);
             }
         },
-        "Navigation Agent":{
-            augmentWithContext: (task: any) =>{
+        "Navigation Agent": {
+            augmentWithContext: (task: any) => {
                 return {
                     ...task,
                     context: {
@@ -158,7 +140,7 @@ function AppDashboard() {
                     }
                 }
             },
-            resolve: (task:any)=>{
+            resolve: (task: any) => {
                 console.log("NAVIGATION SIMULATION!", task.response.page)
                 setCurrentPage(task.response.page)
             }
@@ -170,8 +152,11 @@ function AppDashboard() {
     }, [startDate, endDate, minAmountFilter, maxAmountFilter, typeFilter, categoryFilter, paymentMethodFilter])
 
     useEffect(() => {
-        drawPieChart()
-    }, [filteredTransactions])
+        if (currentPage === "transactions") {
+            drawPieChart()
+        }
+
+    }, [filteredTransactions, currentPage])
 
     const applyFilters = () => {
         const filtered = TRANSACTIONS.filter((transaction) => {
@@ -287,7 +272,7 @@ function AppDashboard() {
                     },
                     prompt: prompt ? prompt : chatInput,
                 },
-                { withCredentials: true },
+                {withCredentials: true},
             )
             console.log(res.data)
             if (isEmpty(res.data?.filterSettings)) {
@@ -322,9 +307,9 @@ function AppDashboard() {
                 {
                     prompt: prompt ? prompt : chatInput,
                 },
-                { withCredentials: true },
+                {withCredentials: true},
             )
-            const { response, agentTasks } = parseUserPromptRes.data
+            const {response, agentTasks} = parseUserPromptRes.data
             if (!(response || agentTasks)) {
                 setChatInput("")
                 setParserResponse("Server error")
@@ -348,10 +333,9 @@ function AppDashboard() {
                         return;
                     }
                     agent.resolve(task);
-                    setAgentsResponses(prev => [...prev,task.response.response])
+                    setAgentsResponses(prev => [...prev, task.response.response])
                 }, index * 1000);
             });
-
 
 
         } catch (error) {
@@ -382,24 +366,329 @@ function AppDashboard() {
     }
 `
 
+    const renderCurrentPage = () => {
+        switch (currentPage) {
+            case 'transactions':
+                return null;
+            case 'accounts':
+                return <Accounts currentTheme={currentTheme}/>;
+            case 'settings':
+                return <Settings 
+                    settings={settings}
+                    onSettingChange={(key: string, value: any) => {
+                        setSettings(prev => ({
+                            ...prev,
+                            [key]: value
+                        }));
+                    }}
+                    currentTheme={currentTheme}
+                />;
+            case 'dashboard':
+                return <Dashboard 
+                    currentTheme={currentTheme}
+                    widgets={widgets}
+                    onAddWidget={handleAddWidget}
+                    onRemoveWidget={handleRemoveWidget}
+                    onUpdateWidgets={handleUpdateWidgets}
+                    transactions={filteredTransactions}
+                />;
+            case 'profile':
+                return <Profile currentTheme={currentTheme}/>;
+            case 'notifications':
+                return <Notifications currentTheme={currentTheme}/>;
+            default:
+                return <Dashboard 
+                    currentTheme={currentTheme}
+                    widgets={widgets}
+                    onAddWidget={handleAddWidget}
+                    onRemoveWidget={handleRemoveWidget}
+                    onUpdateWidgets={handleUpdateWidgets}
+                />;
+        }
+    };
+
+    function filtersSection() {
+        return <div
+            style={{
+                backgroundColor: currentTheme.surface,
+                padding: "20px",
+                borderRadius: "5px",
+                marginBottom: "20px",
+                
+            }}
+        >
+
+            <div style={{display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "10px"}}>
+                <input
+                    type="date"
+                    placeholder="Start Date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    style={{padding: "5px", borderRadius: "3px", border: "1px solid #ccc"}}
+                />
+                <input
+                    type="date"
+                    placeholder="End Date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    style={{padding: "5px", borderRadius: "3px", border: "1px solid #ccc"}}
+                />
+                <input
+                    type="number"
+                    placeholder="Min Amount"
+                    value={minAmountFilter}
+                    onChange={(e) => setminAmountFilter(e.target.value)}
+                    style={{padding: "5px", borderRadius: "3px", border: "1px solid #ccc", width: "8em"}}
+                />
+                <input
+                    type="number"
+                    placeholder="Max Amount"
+                    value={maxAmountFilter}
+                    onChange={(e) => setmaxAmountFilter(e.target.value)}
+                    style={{padding: "5px", borderRadius: "3px", border: "1px solid #ccc", width: "8em"}}
+                />
+                <select
+                    value={typeFilter}
+                    onChange={(e) => setTypeFilter(e.target.value)}
+                    style={{padding: "5px", borderRadius: "3px", border: "1px solid #ccc"}}
+                >
+                    <option value="all">All Types</option>
+                    <option value="income">Income</option>
+                    <option value="expense">Expense</option>
+                </select>
+                <select
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                    style={{padding: "5px", borderRadius: "3px", border: "1px solid #ccc"}}
+                >
+                    {["All Categories", ...Array.from(new Set(TRANSACTIONS.map((t) => t.category)))].map((item, i) => (
+                        <option value={i === 0 ? "all" : item} key={"option-key-" + item}>
+                            {item.charAt(0).toUpperCase() + item.slice(1)}
+                        </option>
+                    ))}
+                </select>
+                <select
+                    value={paymentMethodFilter}
+                    onChange={(e) => setPaymentMethodFilter(e.target.value)}
+                    style={{padding: "5px", borderRadius: "3px", border: "1px solid #ccc"}}
+                >
+                    <option value="all">All Payment Methods</option>
+                    <option value="card">Card</option>
+                    <option value="cash">Cash</option>
+                    <option value="cheque">Cheque</option>
+                    <option value="bank transfer">Bank Transfer</option>
+                </select>
+                <button onClick={resetFilters} className={"reset-button"}>
+                    Reset
+                </button>
+            </div>
+        </div>;
+    }
+
+    function transactionsListSection() {
+        return <div style={{display: "flex", gap: "20px"}}>
+            <div
+                style={{
+                    flex: 1,
+                    backgroundColor: currentTheme.surface,
+                    padding: "20px",
+                    borderRadius: "5px",
+                }}
+            >
+                <canvas ref={canvasRef} width="500" height="500"
+                        style={{margin: "0 auto", display: "block"}}></canvas>
+            </div>
+
+            <div
+                className="scrollable-section"
+                style={{
+                    flex: 1,
+                    backgroundColor: currentTheme.surface,
+                    padding: "20px",
+                    borderRadius: "5px",
+                    maxHeight: "500px",
+                }}
+            >
+                {filteredTransactions.length === 0 ? (
+                    <div
+                        style={{
+                            display: "flex",
+                            justifyContent: "center",
+                            alignItems: "center",
+                            height: "200px",
+                            color: "#888",
+                            fontSize: "18px",
+                            fontStyle: "italic",
+                        }}
+                    >
+                        No results found
+                    </div>
+                ) : (
+                    filteredTransactions.map((transaction) => (
+                        <div
+                            key={transaction.id}
+                            style={{
+                                borderBottom: "1px solid #eee",
+                                padding: "10px 0",
+                                display: "flex",
+                                justifyContent: "space-between",
+                            }}
+                        >
+                            <span>{transaction.date}</span>
+                            <span>{transaction.description}</span>
+                            <span style={{color: transaction.type === "income" ? "green" : "red"}}>
+                    {transaction.type === "income" ? "+" : "-"}${Math.abs(transaction.amount).toFixed(2)}
+                  </span>
+                            <span>{transaction.category}</span>
+                            <span>{transaction.paymentMethod}</span>
+                        </div>
+                    ))
+                )}
+            </div>
+        </div>;
+    }
+
+    const handleAddWidget = (type: 'pie-chart' | 'bar-graph' | 'text', gridArea: string, color?: string) => {
+        const newWidget: Widget = {
+            id: Date.now().toString(),
+            gridArea,
+            type,
+            color: color || generatePastelColor(),
+            name: `New ${type}`,
+            groupBy: type === 'pie-chart' ? 'category' : undefined,
+        };
+        setWidgets([...widgets, newWidget]);
+    };
+
+    const handleRemoveWidget = (id: string) => {
+        setWidgets(widgets.filter(widget => widget.id !== id));
+    };
+
+    const handleUpdateWidgets = (newWidgets: Widget[]) => {
+        setWidgets(newWidgets);
+    };
+
+    const handleSettingChange = <K extends keyof Settings>(key: K, value: Settings[K]) => {
+        setSettings(prev => ({
+            ...prev,
+            [key]: value
+        }));
+    };
+
+    const handleWidgetNameChange = (id: string, newName: string) => {
+        setWidgets(widgets.map(widget => 
+            widget.id === id 
+                ? { ...widget, name: newName }
+                : widget
+        ));
+    };
+
+    // Add theme toggle handler
+    const toggleTheme = () => {
+        setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
+    };
+
     return (
         <>
             <style>{spinKeyframes}</style>
-            <div
-                style={{
-                    fontFamily: "Arial, sans-serif",
-                    maxWidth: "1200px",
-                    margin: "0 auto",
-                    padding: "20px",
-                    backgroundColor: "#f0f0f0",
-                }}
-            >
+            <div style={{
+                fontFamily: "Arial, sans-serif",
+                maxWidth: "1200px",
+                margin: "0 auto",
+                padding: "20px",
+                backgroundColor: currentTheme.background,
+                color: currentTheme.text,
+                transition: "all 0.3s ease"
+            }}>
+                <div style={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    marginBottom: "20px"
+                }}>
+                    <button
+                        onClick={toggleTheme}
+                        style={{
+                            padding: "10px 20px",
+                            fontSize: "16px",
+                            backgroundColor: "transparent",
+                            color: currentTheme.text,
+                            border: `1px solid ${currentTheme.border}`,
+                            borderRadius: "5px",
+                            cursor: "pointer",
+                        }}
+                    >
+                        {theme === 'dark' ? "Switch to Light Mode ☀️" : "Switch to Dark Mode 🌙"}
+                    </button>
+                </div>
+
+                <form onSubmit={(e) => handleChatSubmit(e)} style={{display: "flex", marginBottom: "20px"}}>
+                    <input
+                        type="text"
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        placeholder="What would you like to do?"
+                        style={{
+                            flex: 1,
+                            padding: "10px",
+                            fontSize: "16px",
+                            borderRadius: "5px 0 0 5px",
+                            border: "1px solid #ccc",
+                            borderRight: "none",
+                            outline: "none",
+                        }}
+                    />
+                    <button
+                        type="submit"
+                        style={{
+                            padding: "10px 20px",
+                            fontSize: "16px",
+                            backgroundColor: "#007bff",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "0 5px 5px 0",
+                            cursor: "pointer",
+                        }}
+                    >
+                        {"➤"}
+                    </button>
+                </form>
+                <div style={{height: 150}}>
+                    {<Loader isLoading = {isLoading}/>}
+                    <div
+                        style={{
+                            display: isLoading ? "none" : "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            marginBottom: "10px",
+                            width: "100%",
+                        }}
+                    >
+                        <div>
+                            {parserResponse}
+
+                        </div>
+                    </div>
+                    <div style={{color: "#c56c6c", textAlign: "center"}}>
+                        {agentsResponses.map((r) => (
+                            <div>{r}</div>
+                        ))}
+                    </div>
+                    {(parserResponse || agentsResponses?.length > 0) && <div style={{textAlign: "center"}}>
+                        <button onClick={() => {
+                            setParserResponse("")
+                            setAgentsResponses([])
+                        }}>Clear
+                        </button>
+                    </div>}
+
+                </div>
                 <div
                     style={{
                         display: "flex",
                         justifyContent: "space-around",
                         padding: "10px",
-                        backgroundColor: "#f8f9fa",
+                        backgroundColor: currentTheme.surface,
                         marginBottom: "20px",
                     }}
                 >
@@ -410,243 +699,44 @@ function AppDashboard() {
                             style={{
                                 padding: "10px 20px",
                                 fontSize: "16px",
-                                backgroundColor: currentPage === page ? "#007bff" : "transparent",
-                                color: currentPage === page ? "white" : "#333",
+                                backgroundColor: currentPage === page ? currentTheme.primary : "transparent",
+                                color: currentPage === page ? "white" : currentTheme.text,
                                 border: "none",
                                 borderRadius: "5px",
                                 cursor: "pointer",
+                                transition: "all 0.3s ease",
                             }}
                         >
                             {page.charAt(0).toUpperCase() + page.slice(1)}
                         </button>
                     ))}
                 </div>
-                <h1 style={{ color: "#333", textAlign: "center" }}></h1>
+                <h1 style={{color: "#333", textAlign: "center"}}></h1>
 
                 <div
                     style={{
-                        backgroundColor: "#fff",
+                        display: "none",
+                        backgroundColor: currentTheme.surface,
                         padding: "20px",
                         borderRadius: "5px",
                         marginBottom: "20px",
                     }}
                 >
-                    <form onSubmit={(e) => handleChatSubmit(e)} style={{ display: "flex", marginBottom: "20px" }}>
-                        <input
-                            type="text"
-                            value={chatInput}
-                            onChange={(e) => setChatInput(e.target.value)}
-                            placeholder="What would you like to do?"
-                            style={{
-                                flex: 1,
-                                padding: "10px",
-                                fontSize: "16px",
-                                borderRadius: "5px 0 0 5px",
-                                border: "1px solid #ccc",
-                                borderRight: "none",
-                                outline: "none",
-                            }}
-                        />
-                        <button
-                            type="submit"
-                            style={{
-                                padding: "10px 20px",
-                                fontSize: "16px",
-                                backgroundColor: "#007bff",
-                                color: "white",
-                                border: "none",
-                                borderRadius: "0 5px 5px 0",
-                                cursor: "pointer",
-                            }}
-                        >
-                            {"➤"}
-                        </button>
-                    </form>
-                    {/*<div style={{ width: "100%", textAlign: "center", color: "#444" }}>Try these suggestions</div>*/}
-                    {/*<div*/}
-                    {/*    style={{*/}
-                    {/*        display: "flex",*/}
-                    {/*        flexWrap: "wrap",*/}
-                    {/*        justifyContent: "center",*/}
-                    {/*        gap: "3px",*/}
-                    {/*        marginBottom: "10px",*/}
-                    {/*    }}*/}
-                    {/*>*/}
-                    {/*    {visibleSuggestions.map((suggestion: string, index) => {*/}
-                    {/*        return <SuggestionButton key={index} suggestion={suggestion} clickHandler={handleChatSubmit} />*/}
-                    {/*    })}*/}
-                    {/*</div>*/}
-                    {/*{SuggestionsSection(visibleSuggestions, handleMoreSuggestions)}*/}
-                    <div style={{ height: 100 }}>
-                        {Loader(isLoading)}
-                        <div
-                            style={{
-                                display: isLoading ? "none" : "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                marginBottom: "10px",
-                                width: "100%",
-                            }}
-                        >
-              <span>
-                {parserResponse}
-                  <span>
-                  {parserResponse ? (
-                      <button onClick={resetFilters} className="reset-button" style={{ marginLeft: "1em" }}>
-                          Reset
-                      </button>
-                  ) : (
-                      ""
-                  )}
-                </span>
-              </span>
-                        </div>
-                        <div style={{ color: "#c56c6c", textAlign: "center" }}>
-                            {agentsResponses.map((r) => (
-                                <div>{r}</div>
-                            ))}
-                        </div>
-                    </div>
+
+
                 </div>
 
                 {/* Filters moved here */}
-                <div
-                    style={{
-                        backgroundColor: "#fff",
-                        padding: "20px",
-                        borderRadius: "5px",
-                        marginBottom: "20px",
-                    }}
-                >
-                    <h2 style={{ marginBottom: "15px" }}>Filters</h2>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "10px" }}>
-                        <input
-                            type="date"
-                            placeholder="Start Date"
-                            value={startDate}
-                            onChange={(e) => setStartDate(e.target.value)}
-                            style={{ padding: "5px", borderRadius: "3px", border: "1px solid #ccc" }}
-                        />
-                        <input
-                            type="date"
-                            placeholder="End Date"
-                            value={endDate}
-                            onChange={(e) => setEndDate(e.target.value)}
-                            style={{ padding: "5px", borderRadius: "3px", border: "1px solid #ccc" }}
-                        />
-                        <input
-                            type="number"
-                            placeholder="Min Amount"
-                            value={minAmountFilter}
-                            onChange={(e) => setminAmountFilter(e.target.value)}
-                            style={{ padding: "5px", borderRadius: "3px", border: "1px solid #ccc", width: "8em" }}
-                        />
-                        <input
-                            type="number"
-                            placeholder="Max Amount"
-                            value={maxAmountFilter}
-                            onChange={(e) => setmaxAmountFilter(e.target.value)}
-                            style={{ padding: "5px", borderRadius: "3px", border: "1px solid #ccc", width: "8em" }}
-                        />
-                        <select
-                            value={typeFilter}
-                            onChange={(e) => setTypeFilter(e.target.value)}
-                            style={{ padding: "5px", borderRadius: "3px", border: "1px solid #ccc" }}
-                        >
-                            <option value="all">All Types</option>
-                            <option value="income">Income</option>
-                            <option value="expense">Expense</option>
-                        </select>
-                        <select
-                            value={categoryFilter}
-                            onChange={(e) => setCategoryFilter(e.target.value)}
-                            style={{ padding: "5px", borderRadius: "3px", border: "1px solid #ccc" }}
-                        >
-                            {["All Categories", ...Array.from(new Set(TRANSACTIONS.map((t) => t.category)))].map((item, i) => (
-                                <option value={i === 0 ? "all" : item} key={"option-key-" + item}>
-                                    {item.charAt(0).toUpperCase() + item.slice(1)}
-                                </option>
-                            ))}
-                        </select>
-                        <select
-                            value={paymentMethodFilter}
-                            onChange={(e) => setPaymentMethodFilter(e.target.value)}
-                            style={{ padding: "5px", borderRadius: "3px", border: "1px solid #ccc" }}
-                        >
-                            <option value="all">All Payment Methods</option>
-                            <option value="card">Card</option>
-                            <option value="cash">Cash</option>
-                            <option value="cheque">Cheque</option>
-                            <option value="bank transfer">Bank Transfer</option>
-                        </select>
-                        <button onClick={resetFilters} className={"reset-button"}>
-                            Reset
-                        </button>
-                    </div>
-                </div>
-                <div style={{ display: "flex", gap: "20px" }}>
-                    <div
-                        style={{
-                            flex: 1,
-                            backgroundColor: "#fff",
-                            padding: "20px",
-                            borderRadius: "5px",
-                        }}
-                    >
-                        <canvas ref={canvasRef} width="500" height="500" style={{ margin: "0 auto", display: "block" }}></canvas>
-                    </div>
+                {currentPage === "transactions" && <div>
+                    {filtersSection()}
+                    {transactionsListSection()}
+                </div>}
 
-                    <div
-                        className="scrollable-section"
-                        style={{
-                            flex: 1,
-                            backgroundColor: "#fff",
-                            padding: "20px",
-                            borderRadius: "5px",
-                            maxHeight: "500px",
-                        }}
-                    >
-                        {filteredTransactions.length === 0 ? (
-                            <div
-                                style={{
-                                    display: "flex",
-                                    justifyContent: "center",
-                                    alignItems: "center",
-                                    height: "200px",
-                                    color: "#888",
-                                    fontSize: "18px",
-                                    fontStyle: "italic",
-                                }}
-                            >
-                                No results found
-                            </div>
-                        ) : (
-                            filteredTransactions.map((transaction) => (
-                                <div
-                                    key={transaction.id}
-                                    style={{
-                                        borderBottom: "1px solid #eee",
-                                        padding: "10px 0",
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                    }}
-                                >
-                                    <span>{transaction.date}</span>
-                                    <span>{transaction.description}</span>
-                                    <span style={{ color: transaction.type === "income" ? "green" : "red" }}>
-                    {transaction.type === "income" ? "+" : "-"}${Math.abs(transaction.amount).toFixed(2)}
-                  </span>
-                                    <span>{transaction.category}</span>
-                                    <span>{transaction.paymentMethod}</span>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
+                {renderCurrentPage()}
             </div>
         </>
     )
 }
 
-export default AppDashboard
+export default App
 
