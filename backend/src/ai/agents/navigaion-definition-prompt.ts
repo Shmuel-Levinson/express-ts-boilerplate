@@ -10,7 +10,7 @@ export const NAVIGATION_AGENT_DEFINITION_PROMPT = `
         "response": ...,
         "page": ...
     }
-    - 'response' is a simple notification that the user will be navigated to his desired page
+    - 'response' is a simple notification that the user has been navigated to his desired page
     - 'page' is the page the user should be navigated to.
-    If user wants to navigate to a page that is not available, return a notification that the page is not available and navigate to transactions page.
+    If user wants to navigate to a page that is not available, return a notification that the page is not available and stay on the current page.
     `

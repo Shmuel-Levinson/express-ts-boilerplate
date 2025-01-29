@@ -11,6 +11,7 @@ import Notifications from './components/Notifications';
 import { Loader } from './components/Loader';
 import { generateColor, generatePastelColor } from './utils/color-utils';
 import { allSuggestions } from './data/suggestions';
+import TransactionList from "./components/TransactionList.tsx";
 
 const initialFilterState = {
     startDateFilter: "",
@@ -151,12 +152,6 @@ function App() {
         applyFilters()
     }, [startDate, endDate, minAmountFilter, maxAmountFilter, typeFilter, categoryFilter, paymentMethodFilter])
 
-    useEffect(() => {
-        if (currentPage === "transactions") {
-            drawPieChart()
-        }
-
-    }, [filteredTransactions, currentPage])
 
     const applyFilters = () => {
         const filtered = TRANSACTIONS.filter((transaction) => {
@@ -180,7 +175,7 @@ function App() {
 
     const resetFilters = () => {
         setFilters(initialFilterState)
-        setParserResponse("")
+
     }
 
     const setFilters = (filters: any) => {
@@ -251,48 +246,6 @@ function App() {
         })
     }
 
-    const handleFilterAgentChatSubmit = async (e: any, prompt: string = "") => {
-        if (e) {
-            e.preventDefault()
-        }
-        setIsLoading(true)
-        console.log("loading...")
-        try {
-            const res = await axios.post(
-                "http://localhost:5000/update-filter",
-                {
-                    currentFilter: {
-                        startDateFilter: startDate,
-                        endDateFilter: endDate,
-                        minAmountFilter: minAmountFilter,
-                        maxAmountFilter: maxAmountFilter,
-                        typeFilter: typeFilter,
-                        categoryFilter: categoryFilter,
-                        paymentMethodFilter: paymentMethodFilter,
-                    },
-                    prompt: prompt ? prompt : chatInput,
-                },
-                {withCredentials: true},
-            )
-            console.log(res.data)
-            if (isEmpty(res.data?.filterSettings)) {
-                resetFilters()
-            }
-            if (Array.from(Object.keys(res.data.filterSettings)).length > 0) {
-                console.log("setting filter with ", res.data.filterSettings)
-                setFilters(res.data.filterSettings)
-            }
-            setParserResponse(res.data.response)
-            setChatInput("")
-        } catch (error) {
-            console.error("Error updating filters:", error)
-        } finally {
-            setIsLoading(false)
-            // shuffleAndUpdateSuggestions()
-            console.log("done")
-        }
-    }
-
     const handleChatSubmit = async (e: any, prompt: string = "") => {
         if (e) {
             e.preventDefault()
@@ -318,13 +271,19 @@ function App() {
             setParserResponse(parseUserPromptRes.data.response)
             const augmentedTasks = agentTasks.map((task: { agent: string, prompt: string }) => {
                     const agent = Agents[task["agent"]]
-                    return agent.augmentWithContext(task)
+                    if(agent?.augmentWithContext) {
+                        return agent.augmentWithContext(task)
+                    }
+                    return task
                 }
             )
 
             const agentExecutorRes = await axios.post("http://localhost:5000/agent-executor", augmentedTasks)
             const tasksForResolvers = agentExecutorRes.data
-
+            if (tasksForResolvers.length < 1) {
+                setIsLoading(false);
+                return
+            }
             tasksForResolvers.forEach((task, index) => {
                 setTimeout(() => {
                     const agent = Agents[task.agent];
@@ -333,7 +292,11 @@ function App() {
                         return;
                     }
                     agent.resolve(task);
-                    setAgentsResponses(prev => [...prev, task.response.response])
+                    const agentResponse = task.agent + ": " + task.response.response
+                    if(index === tasksForResolvers.length - 1) {
+                        setIsLoading(false)
+                    }
+                    setAgentsResponses(prev => [...prev, agentResponse])
                 }, index * 1000);
             });
 
@@ -341,16 +304,16 @@ function App() {
         } catch (error) {
             console.error("Error updating filters:", error)
         } finally {
-            setIsLoading(false)
+            
             shuffleAndUpdateSuggestions()
             console.log("done")
         }
     }
 
     const shuffleAndUpdateSuggestions = () => {
-        const shuffled = shuffleArray([...allSuggestions])
-        setAllShuffledSuggestions(shuffled)
-        setVisibleSuggestions(shuffled.slice(0, 2))
+        // const shuffled = shuffleArray([...allSuggestions])
+        // setAllShuffledSuggestions(shuffled)
+        // setVisibleSuggestions(shuffled.slice(0, 2))
     }
 
     const handleMoreSuggestions = () => {
@@ -369,7 +332,7 @@ function App() {
     const renderCurrentPage = () => {
         switch (currentPage) {
             case 'transactions':
-                return null;
+                return <TransactionList transactions={filteredTransactions} currentTheme={currentTheme}/>;
             case 'accounts':
                 return <Accounts currentTheme={currentTheme}/>;
             case 'settings':
@@ -413,12 +376,10 @@ function App() {
                 backgroundColor: currentTheme.surface,
                 padding: "20px",
                 borderRadius: "5px",
-                marginBottom: "20px",
-                
             }}
         >
 
-            <div style={{display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "10px"}}>
+            <div style={{display: "flex", flexWrap: "wrap", gap: "10px"}}>
                 <input
                     type="date"
                     placeholder="Start Date"
@@ -486,8 +447,8 @@ function App() {
     }
 
     function transactionsListSection() {
-        return <div style={{display: "flex", gap: "20px"}}>
-            <div
+        return <div style={{display: "flex"}}>
+            {/* <div
                 style={{
                     flex: 1,
                     backgroundColor: currentTheme.surface,
@@ -497,10 +458,10 @@ function App() {
             >
                 <canvas ref={canvasRef} width="500" height="500"
                         style={{margin: "0 auto", display: "block"}}></canvas>
-            </div>
+            </div> */}
 
             <div
-                className="scrollable-section"
+                
                 style={{
                     flex: 1,
                     backgroundColor: currentTheme.surface,
@@ -509,41 +470,7 @@ function App() {
                     maxHeight: "500px",
                 }}
             >
-                {filteredTransactions.length === 0 ? (
-                    <div
-                        style={{
-                            display: "flex",
-                            justifyContent: "center",
-                            alignItems: "center",
-                            height: "200px",
-                            color: "#888",
-                            fontSize: "18px",
-                            fontStyle: "italic",
-                        }}
-                    >
-                        No results found
-                    </div>
-                ) : (
-                    filteredTransactions.map((transaction) => (
-                        <div
-                            key={transaction.id}
-                            style={{
-                                borderBottom: "1px solid #eee",
-                                padding: "10px 0",
-                                display: "flex",
-                                justifyContent: "space-between",
-                            }}
-                        >
-                            <span>{transaction.date}</span>
-                            <span>{transaction.description}</span>
-                            <span style={{color: transaction.type === "income" ? "green" : "red"}}>
-                    {transaction.type === "income" ? "+" : "-"}${Math.abs(transaction.amount).toFixed(2)}
-                  </span>
-                            <span>{transaction.category}</span>
-                            <span>{transaction.paymentMethod}</span>
-                        </div>
-                    ))
-                )}
+                <TransactionList transactions={filteredTransactions} currentTheme={currentTheme}/>
             </div>
         </div>;
     }
@@ -595,15 +522,21 @@ function App() {
                 fontFamily: "Arial, sans-serif",
                 maxWidth: "1200px",
                 margin: "0 auto",
+                boxSizing: "border-box",
                 padding: "20px",
                 backgroundColor: currentTheme.background,
                 color: currentTheme.text,
-                transition: "all 0.3s ease"
+                transition: "all 0.3s ease",
+                height: "100vh",
+                display: "flex",
+                flexDirection: "column",
+                gap: "20px",
+                overflow: "hidden"
             }}>
+                {/* Theme Toggle - fixed height */}
                 <div style={{
                     display: "flex",
                     justifyContent: "flex-end",
-                    marginBottom: "20px"
                 }}>
                     <button
                         onClick={toggleTheme}
@@ -621,7 +554,10 @@ function App() {
                     </button>
                 </div>
 
-                <form onSubmit={(e) => handleChatSubmit(e)} style={{display: "flex", marginBottom: "20px"}}>
+                {/* Chat Form - fixed height */}
+                <form onSubmit={(e) => handleChatSubmit(e)} style={{
+                    display: "flex",
+                }}>
                     <input
                         type="text"
                         value={chatInput}
@@ -652,87 +588,83 @@ function App() {
                         {"➤"}
                     </button>
                 </form>
-                <div style={{height: 150}}>
-                    {<Loader isLoading = {isLoading}/>}
-                    <div
-                        style={{
-                            display: isLoading ? "none" : "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            marginBottom: "10px",
-                            width: "100%",
-                        }}
-                    >
-                        <div>
-                            {parserResponse}
 
-                        </div>
-                    </div>
-                    <div style={{color: "#c56c6c", textAlign: "center"}}>
-                        {agentsResponses.map((r) => (
-                            <div>{r}</div>
-                        ))}
-                    </div>
-                    {(parserResponse || agentsResponses?.length > 0) && <div style={{textAlign: "center"}}>
-                        <button onClick={() => {
-                            setParserResponse("")
-                            setAgentsResponses([])
-                        }}>Clear
-                        </button>
-                    </div>}
-
-                </div>
-                <div
-                    style={{
+                {/* Response Area - fixed height */}
+                <div style={{height: "50px"}}>
+                    {<Loader isLoading={isLoading}/>}
+                    <div style={{
                         display: "flex",
-                        justifyContent: "space-around",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "10px"
+                    }}>
+                        <span style={{fontSize: "12px"}}>{parserResponse}</span>
+                        <span style={{color: "#007afd", fontSize: "12px"}}>
+                            {agentsResponses.join(" • ")}
+                        </span>
+                        {(!isLoading && (parserResponse || agentsResponses?.length > 0)) && 
+                            <button onClick={() => {
+                                setParserResponse("")
+                                setAgentsResponses([])
+                            }}>Clear</button>
+                        }
+                    </div>
+                </div>
+
+                {/* Main Content Area - takes remaining height */}
+                <div style={{
+                    flex: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "20px",
+                    minHeight: 0,
+                    overflow: "hidden"
+                }}>
+                    {/* Navigation */}
+                    <div style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(6, 1fr)",
+                        gap: "10px",
                         padding: "10px",
                         backgroundColor: currentTheme.surface,
-                        marginBottom: "20px",
-                    }}
-                >
-                    {["transactions", "accounts", "settings", "dashboard", "profile", "notifications"].map((page) => (
-                        <button
-                            key={page}
-                            onClick={() => setCurrentPage(page)}
-                            style={{
-                                padding: "10px 20px",
-                                fontSize: "16px",
-                                backgroundColor: currentPage === page ? currentTheme.primary : "transparent",
-                                color: currentPage === page ? "white" : currentTheme.text,
-                                border: "none",
-                                borderRadius: "5px",
-                                cursor: "pointer",
-                                transition: "all 0.3s ease",
-                            }}
-                        >
-                            {page.charAt(0).toUpperCase() + page.slice(1)}
-                        </button>
-                    ))}
-                </div>
-                <h1 style={{color: "#333", textAlign: "center"}}></h1>
-
-                <div
-                    style={{
-                        display: "none",
-                        backgroundColor: currentTheme.surface,
-                        padding: "20px",
                         borderRadius: "5px",
-                        marginBottom: "20px",
-                    }}
-                >
+                    }}>
+                        {["transactions", "accounts", "settings", "dashboard", "profile", "notifications"].map((page) => (
+                            <button
+                                key={page}
+                                onClick={() => setCurrentPage(page)}
+                                style={{
+                                    padding: "10px",
+                                    fontSize: "16px",
+                                    backgroundColor: currentPage === page ? currentTheme.primary : "transparent",
+                                    color: currentPage === page ? "white" : currentTheme.text,
+                                    border: "none",
+                                    borderRadius: "5px",
+                                    cursor: "pointer",
+                                    transition: "all 0.3s ease",
+                                    width: "100%",
+                                }}
+                            >
+                                {page.charAt(0).toUpperCase() + page.slice(1)}
+                            </button>
+                        ))}
+                    </div>
 
-
-                </div>
-
-                {/* Filters moved here */}
-                {currentPage === "transactions" && <div>
+                    {/* Filters */}
                     {filtersSection()}
-                    {transactionsListSection()}
-                </div>}
 
-                {renderCurrentPage()}
+                    {/* Content Area - scrollable */}
+                    <div style={{
+                        flex: 1,
+                        minHeight: 0,
+                        overflow: "auto",
+                        backgroundColor: currentTheme.surface,
+                        borderRadius: "5px",
+                        padding: "20px"
+                    }}>
+                        {renderCurrentPage()}
+                    </div>
+                </div>
             </div>
         </>
     )
