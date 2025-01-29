@@ -12,6 +12,7 @@ import { Loader } from './components/Loader';
 import { generateColor, generatePastelColor } from './utils/color-utils';
 import { allSuggestions } from './data/suggestions';
 import TransactionList from "./components/TransactionList.tsx";
+import { TextWidget } from './components/TextWidget';
 
 const initialFilterState = {
     startDateFilter: "",
@@ -30,6 +31,7 @@ export interface Widget {
     color?: string;
     name: string;
     groupBy?: 'category' | 'paymentMethod' | 'type';
+    data: any;
 }
 
 export interface Settings {
@@ -86,7 +88,15 @@ function App() {
     const canvasRef = useRef(null)
     const [currentPage, setCurrentPage] = useState("transactions")
     const [isDarkMode, setIsDarkMode] = useState(false)
-    const [widgets, setWidgets] = useState<Widget[]>([])
+    const [widgets, setWidgets] = useState<Widget[]>([
+        {
+            id: '1',
+            type: 'text',
+            data: { text: 'Edit this text...' },
+            gridArea: '1 / 1',
+            name: 'Text Widget',
+        }
+    ]);
     const [theme, setTheme] = useState<string>('light');
     const [settings, setSettings] = useState<Settings>({
         density: 'comfortable',
@@ -105,6 +115,8 @@ function App() {
             showStatusBar: true,
         }
     });
+    const [showChat, setShowChat] = useState(true);
+    const inputRef = useRef<HTMLInputElement>(null);
 
     const currentTheme = theme === 'dark' ? darkTheme : lightTheme;
 
@@ -152,6 +164,23 @@ function App() {
         applyFilters()
     }, [startDate, endDate, minAmountFilter, maxAmountFilter, typeFilter, categoryFilter, paymentMethodFilter])
 
+    useEffect(() => {
+        const handleKeyPress = (e: KeyboardEvent) => {
+            if (e.ctrlKey && e.key.toLowerCase() === 'l') {
+                e.preventDefault();
+                setShowChat(prev => !prev);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyPress);
+        return () => window.removeEventListener('keydown', handleKeyPress);
+    }, []);
+
+    useEffect(() => {
+        if (showChat && inputRef.current) {
+            inputRef.current.focus();
+        }
+    }, [showChat]);
 
     const applyFilters = () => {
         const filtered = TRANSACTIONS.filter((transaction) => {
@@ -354,7 +383,10 @@ function App() {
                     onRemoveWidget={handleRemoveWidget}
                     onUpdateWidgets={handleUpdateWidgets}
                     transactions={filteredTransactions}
-                />;
+                    updateWidgetText={updateWidgetText}
+                />
+                    
+                
             case 'profile':
                 return <Profile currentTheme={currentTheme}/>;
             case 'notifications':
@@ -366,6 +398,7 @@ function App() {
                     onAddWidget={handleAddWidget}
                     onRemoveWidget={handleRemoveWidget}
                     onUpdateWidgets={handleUpdateWidgets}
+                    transactions={filteredTransactions}
                 />;
         }
     };
@@ -483,6 +516,8 @@ function App() {
             color: color || generatePastelColor(),
             name: `New ${type}`,
             groupBy: type === 'pie-chart' ? 'category' : undefined,
+            data: type === 'text' ? { text: '' } : undefined,
+            position: { x: 0, y: 0 },
         };
         setWidgets([...widgets, newWidget]);
     };
@@ -493,6 +528,7 @@ function App() {
 
     const handleUpdateWidgets = (newWidgets: Widget[]) => {
         setWidgets(newWidgets);
+        console.log("widgets updated", newWidgets)
     };
 
     const handleSettingChange = <K extends keyof Settings>(key: K, value: Settings[K]) => {
@@ -508,6 +544,16 @@ function App() {
                 ? { ...widget, name: newName }
                 : widget
         ));
+    };
+
+    const updateWidgetText = (widgetId: string, newText: string) => {
+        setWidgets(prevWidgets => 
+            prevWidgets.map(widget => 
+                widget.id === widgetId 
+                    ? { ...widget, data: { ...widget.data, text: newText } }
+                    : widget
+            )
+        );
     };
 
     // Add theme toggle handler
@@ -555,42 +601,45 @@ function App() {
                 </div>
 
                 {/* Chat Form - fixed height */}
-                <form onSubmit={(e) => handleChatSubmit(e)} style={{
-                    display: "flex",
-                }}>
-                    <input
-                        type="text"
-                        value={chatInput}
-                        onChange={(e) => setChatInput(e.target.value)}
-                        placeholder="What would you like to do?"
-                        style={{
-                            flex: 1,
-                            padding: "10px",
-                            fontSize: "16px",
-                            borderRadius: "5px 0 0 5px",
-                            border: "1px solid #ccc",
-                            borderRight: "none",
-                            outline: "none",
-                        }}
-                    />
-                    <button
-                        type="submit"
-                        style={{
-                            padding: "10px 20px",
-                            fontSize: "16px",
-                            backgroundColor: "#007bff",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "0 5px 5px 0",
-                            cursor: "pointer",
-                        }}
-                    >
-                        {"➤"}
-                    </button>
-                </form>
+                {showChat && (
+                    <form onSubmit={(e) => handleChatSubmit(e)} style={{
+                        display: "flex",
+                    }}>
+                        <input
+                            ref={inputRef}
+                            type="text"
+                            value={chatInput}
+                            onChange={(e) => setChatInput(e.target.value)}
+                            placeholder="What would you like to do?"
+                            style={{
+                                flex: 1,
+                                padding: "10px",
+                                fontSize: "16px",
+                                borderRadius: "5px 0 0 5px",
+                                border: "1px solid #ccc",
+                                borderRight: "none",
+                                outline: "none",
+                            }}
+                        />
+                        <button
+                            type="submit"
+                            style={{
+                                padding: "10px 20px",
+                                fontSize: "16px",
+                                backgroundColor: "#007bff",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "0 5px 5px 0",
+                                cursor: "pointer",
+                            }}
+                        >
+                            {"➤"}
+                        </button>
+                    </form>
+                )}
 
                 {/* Response Area - fixed height */}
-                <div style={{height: "50px"}}>
+                {showChat && <div style={{height: "50px"}}>
                     {<Loader isLoading={isLoading}/>}
                     <div style={{
                         display: "flex",
@@ -609,7 +658,7 @@ function App() {
                             }}>Clear</button>
                         }
                     </div>
-                </div>
+                </div>}
 
                 {/* Main Content Area - takes remaining height */}
                 <div style={{
