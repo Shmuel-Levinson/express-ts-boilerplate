@@ -7,7 +7,7 @@ export function TextWidget({ text, onTextChange }: TextWidgetProps) {
     return (
         <div style={{
             padding: "10px",
-            border: "1px solid #ccc",
+            border: "none",
             borderRadius: "4px",
             height: "100%",
             display: "flex",
