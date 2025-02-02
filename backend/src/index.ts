@@ -104,19 +104,6 @@ app.post('/agent-executor', async (req: Request, res: Response) => {
     log('executed');
 })
 
-app.post('/update-filter-mock', async (req: Request, res: Response) => {
-    console.log("update-filter-mock");
-    res.send({
-        dateRange: {
-            start: '',
-            end: ''
-        },
-        minSumFilter: 100,
-        maxSumFilter: 500,
-        typeFilter: 'all',
-        categoryFilter: ['travel']
-    })
-})
 
 const port = process.env.PORT || 3000;
 async function geminiSanityCheck(){

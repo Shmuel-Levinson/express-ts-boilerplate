@@ -7,6 +7,7 @@ export const ParserAgent = {
     description: "Parses user prompt and delegates to the appropriate agents.",
     getResponse: async (body: any): Promise<{ response: string, agents: string[] }> => {
         const prompt = body.prompt;
+        const context = body.context;
         const history = body.history || [];
         const fullHistory = [
             systemMessage(PARSER_DEFINITION_PROMPT),

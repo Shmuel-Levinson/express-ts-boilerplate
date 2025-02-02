@@ -1,18 +1,18 @@
-import React, { useState, useEffect, useRef } from "react"
+import React, {useState, useEffect, useRef} from "react"
 import axios from "axios"
 import "./App.css"
-import { TRANSACTIONS } from "./mock-data.ts"
-import { isEmpty } from "./utils/object-utils.ts"
+import {TRANSACTIONS} from "./mock-data.ts"
+import {isEmpty} from "./utils/object-utils.ts"
 import Accounts from './components/Accounts';
 import Settings from './components/Settings';
 import Dashboard from './components/Dashboard';
 import Profile from './components/Profile';
 import Notifications from './components/Notifications';
-import { Loader } from './components/Loader';
-import { generateColor, generatePastelColor } from './utils/color-utils';
-import { allSuggestions } from './data/suggestions';
+import {Loader} from './components/Loader';
+import {generateColor, generatePastelColor} from './utils/color-utils';
+import {allSuggestions} from './data/suggestions';
 import TransactionList from "./components/TransactionList.tsx";
-import { TextWidget } from './components/TextWidget';
+import {TextWidget} from './components/TextWidget';
 
 const initialFilterState = {
     startDateFilter: "",
@@ -334,10 +334,11 @@ function App() {
                 "http://localhost:5000/parse-user-prompt",
                 {
                     prompt: prompt ? prompt : chatInput,
+                    context: {currentPage: currentPage}
                 },
-                { withCredentials: true },
+                {withCredentials: true},
             )
-            const { response, agentTasks } = parseUserPromptRes.data
+            const {response, agentTasks} = parseUserPromptRes.data
             if (!(response || agentTasks)) {
                 setChatInput("")
                 setParserResponse("Server error")
@@ -345,12 +346,12 @@ function App() {
             }
             setParserResponse(parseUserPromptRes.data.response)
             const augmentedTasks = agentTasks.map((task: { agent: string, prompt: string }) => {
-                const agent = Agents[task["agent"]]
-                if (agent?.augmentWithContext) {
-                    return agent.augmentWithContext(task)
+                    const agent = Agents[task["agent"]]
+                    if (agent?.augmentWithContext) {
+                        return agent.augmentWithContext(task)
+                    }
+                    return task
                 }
-                return task
-            }
             )
 
             const agentExecutorRes = await axios.post("http://localhost:5000/agent-executor", augmentedTasks)
@@ -407,9 +408,9 @@ function App() {
     const renderCurrentPage = () => {
         switch (currentPage) {
             case 'transactions':
-                return <TransactionList transactions={filteredTransactions} currentTheme={currentTheme} />;
+                return <TransactionList transactions={filteredTransactions} currentTheme={currentTheme}/>;
             case 'accounts':
-                return <Accounts currentTheme={currentTheme} />;
+                return <Accounts currentTheme={currentTheme}/>;
             case 'settings':
                 return <Settings
                     settings={settings}
@@ -434,9 +435,9 @@ function App() {
 
 
             case 'profile':
-                return <Profile currentTheme={currentTheme} />;
+                return <Profile currentTheme={currentTheme}/>;
             case 'notifications':
-                return <Notifications currentTheme={currentTheme} />;
+                return <Notifications currentTheme={currentTheme}/>;
             default:
                 return <Dashboard
                     currentTheme={currentTheme}
@@ -458,39 +459,39 @@ function App() {
             }}
         >
 
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+            <div style={{display: "flex", flexWrap: "wrap", gap: "10px"}}>
                 <input
                     type="date"
                     placeholder="Start Date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    style={{ padding: "5px", borderRadius: "3px", border: "1px solid #ccc" }}
+                    style={{padding: "5px", borderRadius: "3px", border: "1px solid #ccc"}}
                 />
                 <input
                     type="date"
                     placeholder="End Date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    style={{ padding: "5px", borderRadius: "3px", border: "1px solid #ccc" }}
+                    style={{padding: "5px", borderRadius: "3px", border: "1px solid #ccc"}}
                 />
                 <input
                     type="number"
                     placeholder="Min Amount"
                     value={minAmountFilter}
                     onChange={(e) => setminAmountFilter(e.target.value)}
-                    style={{ padding: "5px", borderRadius: "3px", border: "1px solid #ccc", width: "8em" }}
+                    style={{padding: "5px", borderRadius: "3px", border: "1px solid #ccc", width: "8em"}}
                 />
                 <input
                     type="number"
                     placeholder="Max Amount"
                     value={maxAmountFilter}
                     onChange={(e) => setmaxAmountFilter(e.target.value)}
-                    style={{ padding: "5px", borderRadius: "3px", border: "1px solid #ccc", width: "8em" }}
+                    style={{padding: "5px", borderRadius: "3px", border: "1px solid #ccc", width: "8em"}}
                 />
                 <select
                     value={typeFilter}
                     onChange={(e) => setTypeFilter(e.target.value)}
-                    style={{ padding: "5px", borderRadius: "3px", border: "1px solid #ccc" }}
+                    style={{padding: "5px", borderRadius: "3px", border: "1px solid #ccc"}}
                 >
                     <option value="all">All Types</option>
                     <option value="income">Income</option>
@@ -499,7 +500,7 @@ function App() {
                 <select
                     value={categoryFilter}
                     onChange={(e) => setCategoryFilter(e.target.value)}
-                    style={{ padding: "5px", borderRadius: "3px", border: "1px solid #ccc" }}
+                    style={{padding: "5px", borderRadius: "3px", border: "1px solid #ccc"}}
                 >
                     {["All Categories", ...Array.from(new Set(TRANSACTIONS.map((t) => t.category)))].map((item, i) => (
                         <option value={i === 0 ? "all" : item} key={"option-key-" + item}>
@@ -510,7 +511,7 @@ function App() {
                 <select
                     value={paymentMethodFilter}
                     onChange={(e) => setPaymentMethodFilter(e.target.value)}
-                    style={{ padding: "5px", borderRadius: "3px", border: "1px solid #ccc" }}
+                    style={{padding: "5px", borderRadius: "3px", border: "1px solid #ccc"}}
                 >
                     <option value="all">All Payment Methods</option>
                     <option value="card">Card</option>
@@ -526,7 +527,7 @@ function App() {
     }
 
     function transactionsListSection() {
-        return <div style={{ display: "flex" }}>
+        return <div style={{display: "flex"}}>
             {/* <div
                 style={{
                     flex: 1,
@@ -549,7 +550,7 @@ function App() {
                     maxHeight: "500px",
                 }}
             >
-                <TransactionList transactions={filteredTransactions} currentTheme={currentTheme} />
+                <TransactionList transactions={filteredTransactions} currentTheme={currentTheme}/>
             </div>
         </div>;
     }
@@ -562,7 +563,7 @@ function App() {
             color: color || generatePastelColor(),
             name: `New ${type}`,
             groupBy: type === 'pie-chart' ? 'category' : undefined,
-            data: type === 'text' ? { text: '' } : undefined,
+            data: type === 'text' ? {text: ''} : undefined,
         };
         setWidgets([...(widgets || []), newWidget]);
     };
@@ -586,7 +587,7 @@ function App() {
     const handleWidgetNameChange = (id: string, newName: string) => {
         setWidgets(widgets.map(widget =>
             widget.id === id
-                ? { ...widget, name: newName }
+                ? {...widget, name: newName}
                 : widget
         ));
     };
@@ -595,7 +596,7 @@ function App() {
         setWidgets(prevWidgets =>
             prevWidgets.map(widget =>
                 widget.id === widgetId
-                    ? { ...widget, data: { ...widget.data, text: newText } }
+                    ? {...widget, data: {...widget.data, text: newText}}
                     : widget
             )
         );
@@ -698,7 +699,7 @@ function App() {
                                 alignItems: 'center',
                                 gap: '12px'
                             }}>
-                                <Loader isLoading={isLoading} />
+                                <Loader isLoading={isLoading}/>
                                 {parserResponse && (
                                     <>
                                         <span style={{
@@ -837,7 +838,7 @@ function App() {
                         boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
                     }}>
                         <button
-                            onClick={() => setResponseModal({ isOpen: false, responses: [] })}
+                            onClick={() => setResponseModal({isOpen: false, responses: []})}
                             style={{
                                 position: "absolute",
                                 right: "16px",
@@ -858,7 +859,7 @@ function App() {
                         }}>
                             AI Responses
                         </h2>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
                             {responseModal.responses.map((response, index) => (
                                 <div
                                     key={index}
