@@ -14,6 +14,7 @@ const DASHBOARD_AGENT_DEFINITION_PROMPT = `
             "response": ..., [mandatory!]
             "dashboardState": ... [mandatory! can be empty array]
         }
+        Note that "response" and "dashboardState" are mandatory fields!
     - 'response' is a simple notification that the modification was successful or 
        a notification that the modification was unsuccessful.
     - 'dashboardState' is the new dashboard state which is an array of objects with the following structure:

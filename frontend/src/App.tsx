@@ -70,6 +70,11 @@ const darkTheme = {
     primary: '#007bff'
 };
 
+interface ResponseModal {
+    isOpen: boolean;
+    responses: string[];
+}
+
 function App() {
     const [filteredTransactions, setFilteredTransactions] = useState(TRANSACTIONS)
     const [startDate, setStartDate] = useState("")
@@ -140,6 +145,10 @@ function App() {
     });
     const [showChat, setShowChat] = useState(true);
     const inputRef = useRef<HTMLInputElement>(null);
+    const [responseModal, setResponseModal] = useState<ResponseModal>({
+        isOpen: false,
+        responses: [],
+    });
 
     const currentTheme = theme === 'dark' ? darkTheme : lightTheme;
 
@@ -675,29 +684,77 @@ function App() {
                 )}
 
                 {/* Response Area - fixed height */}
-                {showChat && <div style={{
-                    height: "30px", display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "10px"
-                }}>
-
+                {showChat && (
                     <div style={{
-
+                        height: "30px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "10px"
                     }}>
-                        <Loader isLoading={isLoading} />
-                        <span style={{ fontSize: "12px" }}>{parserResponse}</span>
-                        <span style={{ color: "#007afd", fontSize: "12px" }}>
-                            {agentsResponses.join(" • ")}
-                        </span>
-                        {(!isLoading && (parserResponse || agentsResponses?.length > 0)) &&
-                            <button onClick={() => {
-                                setParserResponse("")
-                                setAgentsResponses([])
-                            }}>Clear</button>
-                        }
+                        <div>
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '12px'
+                            }}>
+                                <Loader isLoading={isLoading} />
+                                {parserResponse && (
+                                    <>
+                                        <span style={{
+                                            fontSize: "14px",
+                                            color: currentTheme.text,
+                                        }}>
+                                            {parserResponse}
+                                        </span>
+                                        {!isLoading && (
+                                            <>
+                                                <span
+                                                    onClick={() => setResponseModal({
+                                                        isOpen: true,
+                                                        responses: [parserResponse, ...agentsResponses]
+                                                    })}
+                                                    style={{
+                                                        fontSize: "14px",
+                                                        cursor: "pointer",
+                                                        backgroundColor: currentTheme.surface2,
+                                                        padding: "6px 12px",
+                                                        borderRadius: "4px",
+                                                        transition: "all 0.2s ease",
+                                                        border: `1px solid ${currentTheme.border}`,
+                                                        color: currentTheme.text,
+                                                        whiteSpace: 'nowrap',
+                                                    }}
+                                                >
+                                                    Show Details
+                                                </span>
+                                                <span
+                                                    onClick={() => {
+                                                        setParserResponse("");
+                                                        setAgentsResponses([]);
+                                                    }}
+                                                    style={{
+                                                        fontSize: "14px",
+                                                        cursor: "pointer",
+                                                        backgroundColor: currentTheme.surface2,
+                                                        padding: "6px 12px",
+                                                        borderRadius: "4px",
+                                                        transition: "all 0.2s ease",
+                                                        border: `1px solid ${currentTheme.border}`,
+                                                        color: currentTheme.text,
+                                                        whiteSpace: 'nowrap',
+                                                    }}
+                                                >
+                                                    Clear
+                                                </span>
+                                            </>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        </div>
                     </div>
-                </div>}
+                )}
 
                 {/* Main Content Area - takes remaining height */}
                 <div style={{
@@ -754,6 +811,80 @@ function App() {
                     </div>
                 </div>
             </div>
+
+            {/* Add this Modal component just before the closing div of your return statement */}
+            {responseModal.isOpen && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000,
+                }}>
+                    <div style={{
+                        backgroundColor: currentTheme.surface,
+                        padding: "24px",
+                        borderRadius: "8px",
+                        maxWidth: "600px",
+                        width: "90%",
+                        maxHeight: "80vh",
+                        overflow: "auto",
+                        position: "relative",
+                        boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+                    }}>
+                        <button
+                            onClick={() => setResponseModal({ isOpen: false, responses: [] })}
+                            style={{
+                                position: "absolute",
+                                right: "16px",
+                                top: "16px",
+                                border: "none",
+                                background: "none",
+                                fontSize: "20px",
+                                cursor: "pointer",
+                                color: currentTheme.text,
+                                padding: "4px 8px",
+                            }}
+                        >
+                            ✕
+                        </button>
+                        <h2 style={{
+                            marginBottom: "20px",
+                            color: currentTheme.text,
+                        }}>
+                            AI Responses
+                        </h2>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            {responseModal.responses.map((response, index) => (
+                                <div
+                                    key={index}
+                                    style={{
+                                        padding: "16px",
+                                        backgroundColor: currentTheme.surface2,
+                                        borderRadius: "6px",
+                                        borderLeft: `4px solid ${index === 0 ? currentTheme.primary : '#666'}`,
+                                        color: currentTheme.text,
+                                    }}
+                                >
+                                    <div style={{
+                                        fontSize: '12px',
+                                        color: currentTheme.textMuted || '#666',
+                                        marginBottom: '4px'
+                                    }}>
+                                        {index === 0 ? 'Parser Response' : `Agent Response ${index}`}
+                                    </div>
+                                    {response}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     )
 }
