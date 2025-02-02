@@ -86,12 +86,12 @@ function App() {
     const [paymentMethodFilter, setPaymentMethodFilter] = useState("all")
     const [parserResponse, setParserResponse] = useState("")
     const [agentsResponses, setAgentsResponses] = useState<string[]>([])
-    const [chatInput, setChatInput] = useState("create 2 text widgets with inspiring quotes")
+    const [chatInput, setChatInput] = useState("")
     const [isLoading, setIsLoading] = useState(false)
     const [allShuffledSuggestions, setAllShuffledSuggestions] = useState([...allSuggestions])
     const [visibleSuggestions, setVisibleSuggestions] = useState(allSuggestions.slice(0, 2))
     const canvasRef = useRef(null)
-    const [currentPage, setCurrentPage] = useState("dashboard")
+    const [currentPage, setCurrentPage] = useState("transactions")
     const [isDarkMode, setIsDarkMode] = useState(false)
     const [widgets, setWidgets] = useState<Widget[]>([
         // {
@@ -143,7 +143,7 @@ function App() {
             showStatusBar: true,
         }
     });
-    const [showChat, setShowChat] = useState(true);
+    const [showChat, setShowChat] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const [responseModal, setResponseModal] = useState<ResponseModal>({
         isOpen: false,
@@ -766,7 +766,7 @@ function App() {
                     overflow: "hidden"
                 }}>
                     {/* Navigation */}
-                    {showChat && <div style={{
+                    {<div style={{
                         display: "grid",
                         gridTemplateColumns: "repeat(6, 1fr)",
                         gap: "10px",
@@ -796,7 +796,7 @@ function App() {
                     </div>}
 
                     {/* Filters */}
-                    {showChat && filtersSection()}
+                    {filtersSection()}
 
                     {/* Content Area - scrollable */}
                     <div style={{
@@ -812,7 +812,6 @@ function App() {
                 </div>
             </div>
 
-            {/* Add this Modal component just before the closing div of your return statement */}
             {responseModal.isOpen && (
                 <div style={{
                     position: 'fixed',
