@@ -10,7 +10,9 @@ import {getCompletion} from "./open-ai/open-ai-api";
 import {FilterAgent} from "./ai/agents/filter-agent";
 import {ParserAgent} from "./ai/agents/parser-agent";
 import {NavigationAgent} from "./ai/agents/navigation-agent";
-
+import {GoogleGenerativeAI} from "@google/generative-ai";
+import {GeminiAgent} from "./gemini/gemini-api";
+import {DashboardAgent} from "./ai/agents/dashboard-agent";
 
 dotenv.config();
 const app = express();
@@ -27,10 +29,11 @@ app.use(cookieParser()); // Parse cookies
 app.use(bodyParser.json()); // Parse JSON request bodies
 app.use(bodyParser.urlencoded({extended: true})); // Parse URL-encoded request bodies
 
-
+console.log("I'm alive")
 const AGENTS: Record<string, any> = {
     "Transaction Filters Agent": FilterAgent,
     "Navigation Agent": NavigationAgent,
+    "Dashboard Agent": DashboardAgent,
 };
 
 app.get('/ping', async (req: Request, res: Response, next: NextFunction) => {
@@ -85,6 +88,12 @@ app.post('/agent-executor', async (req: Request, res: Response) => {
     const tasks = req.body;
     const responses = await Promise.all(tasks.map((async (task:any) => {
         const agent: { name: string, getResponse: Function } = AGENTS[task.agent];
+        if (!agent) {
+            return {
+                agent: task.agent,
+                response: "Sorry, I couldn't find that agent."
+            }
+        }
         const response = await agent.getResponse(task);
         return {
             agent: task.agent,
@@ -110,10 +119,18 @@ app.post('/update-filter-mock', async (req: Request, res: Response) => {
 })
 
 const port = process.env.PORT || 3000;
-
+async function geminiSanityCheck(){
+    const agent = new GeminiAgent();
+    agent.setSystemInstructions("You are a pirate. always answer like a pirate and be rude")
+    const response = await agent.getResponse([
+        {role:"user",content:"What is the capital of France?"},
+        {role:"assistant",content:"Berlin mate"},
+        {role:"user",content:"are you sure??"},
+    ]);
+    console.log(response);
+    console.log('done.')
+}
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
-    // getCompletion("Hello, OpenAI!!").then(r => {
-    //     console.log(r);
-    // });
+    // geminiSanityCheck();
 });

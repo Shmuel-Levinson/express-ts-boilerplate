@@ -20,7 +20,7 @@ export function Loader({ isLoading }: { isLoading: boolean }) {
             display: isLoading ? "flex" : "none",
             justifyContent: "center",
             alignItems: "center",
-            marginBottom: "10px"
+            
         }}>
             {spinner()}
             <span>Working...</span>

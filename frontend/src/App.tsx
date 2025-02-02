@@ -1,8 +1,8 @@
-import React, {useState, useEffect, useRef} from "react"
+import React, { useState, useEffect, useRef } from "react"
 import axios from "axios"
 import "./App.css"
-import {TRANSACTIONS} from "./mock-data.ts"
-import {isEmpty} from "./utils/object-utils.ts"
+import { TRANSACTIONS } from "./mock-data.ts"
+import { isEmpty } from "./utils/object-utils.ts"
 import Accounts from './components/Accounts';
 import Settings from './components/Settings';
 import Dashboard from './components/Dashboard';
@@ -31,7 +31,7 @@ export interface Widget {
     color?: string;
     name: string;
     groupBy?: 'category' | 'paymentMethod' | 'type';
-    data: any;
+    data?: any;
 }
 
 export interface Settings {
@@ -81,21 +81,44 @@ function App() {
     const [paymentMethodFilter, setPaymentMethodFilter] = useState("all")
     const [parserResponse, setParserResponse] = useState("")
     const [agentsResponses, setAgentsResponses] = useState<string[]>([])
-    const [chatInput, setChatInput] = useState("Anything under 50 bucks from last week?")
+    const [chatInput, setChatInput] = useState("create 2 text widgets with inspiring quotes")
     const [isLoading, setIsLoading] = useState(false)
     const [allShuffledSuggestions, setAllShuffledSuggestions] = useState([...allSuggestions])
     const [visibleSuggestions, setVisibleSuggestions] = useState(allSuggestions.slice(0, 2))
     const canvasRef = useRef(null)
-    const [currentPage, setCurrentPage] = useState("transactions")
+    const [currentPage, setCurrentPage] = useState("dashboard")
     const [isDarkMode, setIsDarkMode] = useState(false)
     const [widgets, setWidgets] = useState<Widget[]>([
-        {
-            id: '1',
-            type: 'text',
-            data: { text: 'Edit this text...' },
-            gridArea: '1 / 1',
-            name: 'Text Widget',
-        }
+        // {
+        //     id: '1',
+        //     type: 'text',
+        //     data: { text: 'Welcome to your financial dashboard!' },
+        //     gridArea: '1 / 1',
+        //     name: 'Welcome Message',
+        // },
+        // {
+        //     id: '2',
+        //     type: 'pie-chart',
+        //     gridArea: '1 / 2',
+        //     name: 'Payment Menthods',
+        //     color: generatePastelColor(),
+        //     groupBy: 'paymentMethod',
+        // },
+        // {
+        //     id: '3',
+        //     type: 'bar-graph',
+        //     gridArea: '2 / 1',
+        //     name: 'Payment Methods',
+        //     color: generatePastelColor(),
+        //     groupBy: 'paymentMethod',
+        // },
+        // {
+        //     id: '4',
+        //     type: 'text',
+        //     data: { text: 'Track your monthly spending goals here...' },
+        //     gridArea: '2 / 2',
+        //     name: 'Goals Tracker',
+        // }
     ]);
     const [theme, setTheme] = useState<string>('light');
     const [settings, setSettings] = useState<Settings>({
@@ -156,6 +179,20 @@ function App() {
             resolve: (task: any) => {
                 console.log("NAVIGATION SIMULATION!", task.response.page)
                 setCurrentPage(task.response.page)
+            }
+        },
+        "Dashboard Agent": {
+            augmentWithContext: (task: any) => {
+                return {
+                    ...task,
+                    context: {
+                        dashboardState: widgets
+                    }
+                }
+            },
+            resolve: (task: any) => {
+                console.log("DASHBOARD SIMULATION!", task.response.dashboardState)
+                setWidgets(task.response.dashboardState)
             }
         }
     }
@@ -289,9 +326,9 @@ function App() {
                 {
                     prompt: prompt ? prompt : chatInput,
                 },
-                {withCredentials: true},
+                { withCredentials: true },
             )
-            const {response, agentTasks} = parseUserPromptRes.data
+            const { response, agentTasks } = parseUserPromptRes.data
             if (!(response || agentTasks)) {
                 setChatInput("")
                 setParserResponse("Server error")
@@ -299,12 +336,12 @@ function App() {
             }
             setParserResponse(parseUserPromptRes.data.response)
             const augmentedTasks = agentTasks.map((task: { agent: string, prompt: string }) => {
-                    const agent = Agents[task["agent"]]
-                    if(agent?.augmentWithContext) {
-                        return agent.augmentWithContext(task)
-                    }
-                    return task
+                const agent = Agents[task["agent"]]
+                if (agent?.augmentWithContext) {
+                    return agent.augmentWithContext(task)
                 }
+                return task
+            }
             )
 
             const agentExecutorRes = await axios.post("http://localhost:5000/agent-executor", augmentedTasks)
@@ -322,7 +359,7 @@ function App() {
                     }
                     agent.resolve(task);
                     const agentResponse = task.agent + ": " + task.response.response
-                    if(index === tasksForResolvers.length - 1) {
+                    if (index === tasksForResolvers.length - 1) {
                         setIsLoading(false)
                     }
                     setAgentsResponses(prev => [...prev, agentResponse])
@@ -333,7 +370,7 @@ function App() {
         } catch (error) {
             console.error("Error updating filters:", error)
         } finally {
-            
+
             shuffleAndUpdateSuggestions()
             console.log("done")
         }
@@ -361,11 +398,11 @@ function App() {
     const renderCurrentPage = () => {
         switch (currentPage) {
             case 'transactions':
-                return <TransactionList transactions={filteredTransactions} currentTheme={currentTheme}/>;
+                return <TransactionList transactions={filteredTransactions} currentTheme={currentTheme} />;
             case 'accounts':
-                return <Accounts currentTheme={currentTheme}/>;
+                return <Accounts currentTheme={currentTheme} />;
             case 'settings':
-                return <Settings 
+                return <Settings
                     settings={settings}
                     onSettingChange={(key: string, value: any) => {
                         setSettings(prev => ({
@@ -376,7 +413,7 @@ function App() {
                     currentTheme={currentTheme}
                 />;
             case 'dashboard':
-                return <Dashboard 
+                return <Dashboard
                     currentTheme={currentTheme}
                     widgets={widgets}
                     onAddWidget={handleAddWidget}
@@ -385,14 +422,14 @@ function App() {
                     transactions={filteredTransactions}
                     updateWidgetText={updateWidgetText}
                 />
-                    
-                
+
+
             case 'profile':
-                return <Profile currentTheme={currentTheme}/>;
+                return <Profile currentTheme={currentTheme} />;
             case 'notifications':
-                return <Notifications currentTheme={currentTheme}/>;
+                return <Notifications currentTheme={currentTheme} />;
             default:
-                return <Dashboard 
+                return <Dashboard
                     currentTheme={currentTheme}
                     widgets={widgets}
                     onAddWidget={handleAddWidget}
@@ -412,39 +449,39 @@ function App() {
             }}
         >
 
-            <div style={{display: "flex", flexWrap: "wrap", gap: "10px"}}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
                 <input
                     type="date"
                     placeholder="Start Date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    style={{padding: "5px", borderRadius: "3px", border: "1px solid #ccc"}}
+                    style={{ padding: "5px", borderRadius: "3px", border: "1px solid #ccc" }}
                 />
                 <input
                     type="date"
                     placeholder="End Date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    style={{padding: "5px", borderRadius: "3px", border: "1px solid #ccc"}}
+                    style={{ padding: "5px", borderRadius: "3px", border: "1px solid #ccc" }}
                 />
                 <input
                     type="number"
                     placeholder="Min Amount"
                     value={minAmountFilter}
                     onChange={(e) => setminAmountFilter(e.target.value)}
-                    style={{padding: "5px", borderRadius: "3px", border: "1px solid #ccc", width: "8em"}}
+                    style={{ padding: "5px", borderRadius: "3px", border: "1px solid #ccc", width: "8em" }}
                 />
                 <input
                     type="number"
                     placeholder="Max Amount"
                     value={maxAmountFilter}
                     onChange={(e) => setmaxAmountFilter(e.target.value)}
-                    style={{padding: "5px", borderRadius: "3px", border: "1px solid #ccc", width: "8em"}}
+                    style={{ padding: "5px", borderRadius: "3px", border: "1px solid #ccc", width: "8em" }}
                 />
                 <select
                     value={typeFilter}
                     onChange={(e) => setTypeFilter(e.target.value)}
-                    style={{padding: "5px", borderRadius: "3px", border: "1px solid #ccc"}}
+                    style={{ padding: "5px", borderRadius: "3px", border: "1px solid #ccc" }}
                 >
                     <option value="all">All Types</option>
                     <option value="income">Income</option>
@@ -453,7 +490,7 @@ function App() {
                 <select
                     value={categoryFilter}
                     onChange={(e) => setCategoryFilter(e.target.value)}
-                    style={{padding: "5px", borderRadius: "3px", border: "1px solid #ccc"}}
+                    style={{ padding: "5px", borderRadius: "3px", border: "1px solid #ccc" }}
                 >
                     {["All Categories", ...Array.from(new Set(TRANSACTIONS.map((t) => t.category)))].map((item, i) => (
                         <option value={i === 0 ? "all" : item} key={"option-key-" + item}>
@@ -464,7 +501,7 @@ function App() {
                 <select
                     value={paymentMethodFilter}
                     onChange={(e) => setPaymentMethodFilter(e.target.value)}
-                    style={{padding: "5px", borderRadius: "3px", border: "1px solid #ccc"}}
+                    style={{ padding: "5px", borderRadius: "3px", border: "1px solid #ccc" }}
                 >
                     <option value="all">All Payment Methods</option>
                     <option value="card">Card</option>
@@ -480,7 +517,7 @@ function App() {
     }
 
     function transactionsListSection() {
-        return <div style={{display: "flex"}}>
+        return <div style={{ display: "flex" }}>
             {/* <div
                 style={{
                     flex: 1,
@@ -494,7 +531,7 @@ function App() {
             </div> */}
 
             <div
-                
+
                 style={{
                     flex: 1,
                     backgroundColor: currentTheme.surface,
@@ -503,7 +540,7 @@ function App() {
                     maxHeight: "500px",
                 }}
             >
-                <TransactionList transactions={filteredTransactions} currentTheme={currentTheme}/>
+                <TransactionList transactions={filteredTransactions} currentTheme={currentTheme} />
             </div>
         </div>;
     }
@@ -517,9 +554,8 @@ function App() {
             name: `New ${type}`,
             groupBy: type === 'pie-chart' ? 'category' : undefined,
             data: type === 'text' ? { text: '' } : undefined,
-            position: { x: 0, y: 0 },
         };
-        setWidgets([...widgets, newWidget]);
+        setWidgets([...(widgets || []), newWidget]);
     };
 
     const handleRemoveWidget = (id: string) => {
@@ -539,17 +575,17 @@ function App() {
     };
 
     const handleWidgetNameChange = (id: string, newName: string) => {
-        setWidgets(widgets.map(widget => 
-            widget.id === id 
+        setWidgets(widgets.map(widget =>
+            widget.id === id
                 ? { ...widget, name: newName }
                 : widget
         ));
     };
 
     const updateWidgetText = (widgetId: string, newText: string) => {
-        setWidgets(prevWidgets => 
-            prevWidgets.map(widget => 
-                widget.id === widgetId 
+        setWidgets(prevWidgets =>
+            prevWidgets.map(widget =>
+                widget.id === widgetId
                     ? { ...widget, data: { ...widget.data, text: newText } }
                     : widget
             )
@@ -639,19 +675,22 @@ function App() {
                 )}
 
                 {/* Response Area - fixed height */}
-                {showChat && <div style={{height: "50px"}}>
-                    {<Loader isLoading={isLoading}/>}
+                {showChat && <div style={{
+                    height: "30px", display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "10px"
+                }}>
+
                     <div style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "10px"
+
                     }}>
-                        <span style={{fontSize: "12px"}}>{parserResponse}</span>
-                        <span style={{color: "#007afd", fontSize: "12px"}}>
+                        <Loader isLoading={isLoading} />
+                        <span style={{ fontSize: "12px" }}>{parserResponse}</span>
+                        <span style={{ color: "#007afd", fontSize: "12px" }}>
                             {agentsResponses.join(" • ")}
                         </span>
-                        {(!isLoading && (parserResponse || agentsResponses?.length > 0)) && 
+                        {(!isLoading && (parserResponse || agentsResponses?.length > 0)) &&
                             <button onClick={() => {
                                 setParserResponse("")
                                 setAgentsResponses([])
@@ -670,7 +709,7 @@ function App() {
                     overflow: "hidden"
                 }}>
                     {/* Navigation */}
-                    <div style={{
+                    {showChat && <div style={{
                         display: "grid",
                         gridTemplateColumns: "repeat(6, 1fr)",
                         gap: "10px",
@@ -697,10 +736,10 @@ function App() {
                                 {page.charAt(0).toUpperCase() + page.slice(1)}
                             </button>
                         ))}
-                    </div>
+                    </div>}
 
                     {/* Filters */}
-                    {filtersSection()}
+                    {showChat && filtersSection()}
 
                     {/* Content Area - scrollable */}
                     <div style={{

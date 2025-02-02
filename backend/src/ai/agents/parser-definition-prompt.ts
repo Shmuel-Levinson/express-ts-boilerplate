@@ -19,6 +19,7 @@ Available pages include "transactions", "accounts", "settings", "dashboard", "pr
 3. *** Dashboard Agent ***
 This agent will receive the existing dashboard state and a prompt and will modify widgets on the dashboard based on the prompt.
 Available widgets are: "text", "pieChart", "barChart".
+Modifications include: moving widgets around, adding widgets, removing widgets, changing widget properties.
 
 ---
 

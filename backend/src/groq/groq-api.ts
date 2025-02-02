@@ -2,12 +2,13 @@ import {Groq} from 'groq-sdk';
 import dotenv from 'dotenv'
 import {log} from "console";
 import * as https from "node:https";
+import {ChatMessage} from "../ai/types";
 
 
 dotenv.config();
 const httpsAgent = new https.Agent({rejectUnauthorized: false});
 const groq = new Groq({apiKey: process.env.GROQ_API_KEY, httpAgent: httpsAgent});
-export type ChatMessage = { role: "assistant" | "system" | "user"; content: string };
+
 
 export async function getGroqResponse(prompt: string, messageHistory: ChatMessage[]) {
     log({messageHistory, prompt});
