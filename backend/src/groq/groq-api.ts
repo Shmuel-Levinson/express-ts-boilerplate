@@ -15,8 +15,9 @@ export async function getGroqResponse(prompt: string, messageHistory: ChatMessag
     try {
         const chatCompletion = await groq.chat.completions.create({
             messages: messageHistory.concat([{role: "user", content: prompt}]),
-            model: "llama3-8b-8192",
-            temperature: 1,
+            // model: "llama3-8b-8192",
+            model: "mixtral-8x7b-32768",
+            temperature: 0,
             max_tokens: 1024,
             top_p: 1,
             stream: false,
